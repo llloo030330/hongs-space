@@ -9,6 +9,10 @@ type ProjectModalProps = {
   onClose: () => void;
 };
 
+function isExternalLink(href: string) {
+  return href.startsWith("http://") || href.startsWith("https://");
+}
+
 function DetailBlock({
   label,
   children,
@@ -91,6 +95,7 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
             </div>
 
             <div className="mt-10 grid gap-7 sm:grid-cols-2">
+              <DetailBlock label="Context">{project.context}</DetailBlock>
               <DetailBlock label="Role">{project.role}</DetailBlock>
               <DetailBlock label="Status">{project.status}</DetailBlock>
               <DetailBlock label="Problem">{project.problem}</DetailBlock>
@@ -104,8 +109,10 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
                         <span className="text-black/42">{link.label}: </span>
                         <a
                           href={link.href}
-                          target="_blank"
-                          rel="noreferrer"
+                          target={
+                            isExternalLink(link.href) ? "_blank" : undefined
+                          }
+                          rel={isExternalLink(link.href) ? "noreferrer" : undefined}
                           className="underline decoration-black/14 underline-offset-4 transition duration-300 hover:text-black/78 hover:decoration-black/30"
                         >
                           {link.value}
@@ -118,6 +125,41 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
             </div>
 
             <div className="mt-9 rounded-2xl border border-black/[0.07] bg-white/30 p-6">
+              <DetailBlock label="System Flow">
+                <ol className="flex flex-wrap items-center gap-x-2 gap-y-2">
+                  {project.systemFlow.map((step, index) => (
+                    <li
+                      key={step}
+                      className="flex items-center gap-2 text-[12px] leading-6 text-black/56"
+                    >
+                      <span>{step}</span>
+                      {index < project.systemFlow.length - 1 ? (
+                        <span className="text-black/22" aria-hidden="true">
+                          {"->"}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ol>
+              </DetailBlock>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-black/[0.07] bg-white/30 p-6">
+              <DetailBlock label="Key Systems">
+                <ul className="flex flex-wrap gap-2">
+                  {project.keySystems.map((system) => (
+                    <li
+                      key={system}
+                      className="rounded-full border border-black/[0.06] bg-white/[0.16] px-3 py-1.5 text-[10px] font-medium tracking-[0.13em] text-black/48"
+                    >
+                      {system}
+                    </li>
+                  ))}
+                </ul>
+              </DetailBlock>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-black/[0.07] bg-white/30 p-6">
               <DetailBlock label="Core Features">
                 <ul className="grid gap-x-7 gap-y-3 sm:grid-cols-2">
                   {project.coreFeatures.map((feature) => (

@@ -9,6 +9,10 @@ type ProjectCardProps = {
   onOpen: (project: Project) => void;
 };
 
+function isExternalLink(href: string) {
+  return href.startsWith("http://") || href.startsWith("https://");
+}
+
 export function ProjectCard({ project, onOpen }: ProjectCardProps) {
   return (
     <motion.article
@@ -44,26 +48,49 @@ export function ProjectCard({ project, onOpen }: ProjectCardProps) {
 
         <div className="lg:pl-2">
           <div className="divide-y divide-black/[0.06] border-y border-black/[0.055]">
+            <CaseField label="Context">{project.context}</CaseField>
             <CaseField label="Role">{project.role}</CaseField>
             <CaseField label="Problem">{project.problem}</CaseField>
-            <CaseField label="Solution">{project.solution}</CaseField>
-            <CaseField label="Tech">{project.techStack.join(", ")}</CaseField>
 
             <div className="py-5">
               <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.22em] text-black/34">
-                Core Features
+                System Flow
               </p>
-              <ul className="grid gap-x-7 gap-y-2 sm:grid-cols-2">
-                {project.coreFeatures.map((feature) => (
+              <ol className="flex flex-wrap items-center gap-x-2 gap-y-2">
+                {project.systemFlow.map((step, index) => (
                   <li
-                    key={feature}
-                    className="border-t border-black/[0.045] pt-2.5 text-[13px] leading-6 text-black/56"
+                    key={step}
+                    className="flex items-center gap-2 text-[12px] leading-6 text-black/52"
                   >
-                    {feature}
+                    <span>{step}</span>
+                    {index < project.systemFlow.length - 1 ? (
+                      <span className="text-black/20" aria-hidden="true">
+                        {"->"}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <div className="py-5">
+              <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.22em] text-black/34">
+                Key Systems
+              </p>
+              <ul className="flex flex-wrap gap-2">
+                {project.keySystems.map((system) => (
+                  <li
+                    key={system}
+                    className="rounded-full border border-black/[0.06] bg-white/[0.14] px-3 py-1.5 text-[10px] font-medium tracking-[0.13em] text-black/45"
+                  >
+                    {system}
                   </li>
                 ))}
               </ul>
             </div>
+
+            <CaseField label="Solution">{project.solution}</CaseField>
+            <CaseField label="Tech">{project.techStack.join(", ")}</CaseField>
 
             <div className="py-5">
               <div className="flex flex-wrap gap-3">
@@ -79,8 +106,8 @@ export function ProjectCard({ project, onOpen }: ProjectCardProps) {
                   <a
                     key={link.href}
                     href={link.href}
-                    target="_blank"
-                    rel="noreferrer"
+                    target={isExternalLink(link.href) ? "_blank" : undefined}
+                    rel={isExternalLink(link.href) ? "noreferrer" : undefined}
                     className="inline-flex min-h-11 items-center rounded-full border border-black/[0.065] px-5 text-[11px] font-medium tracking-[0.16em] text-black/46 transition duration-300 hover:border-black/[0.13] hover:bg-white/30 hover:text-black/64 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
                   >
                     {link.label}
