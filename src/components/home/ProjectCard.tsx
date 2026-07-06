@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Project } from "@/data/projects";
 
@@ -14,6 +15,10 @@ function isExternalLink(href: string) {
 }
 
 export function ProjectCard({ project, onOpen }: ProjectCardProps) {
+  if (project.variant === "experiment") {
+    return <ExperimentProjectCard project={project} />;
+  }
+
   return (
     <motion.article
       whileHover={{ y: -2 }}
@@ -116,6 +121,68 @@ export function ProjectCard({ project, onOpen }: ProjectCardProps) {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </motion.article>
+  );
+}
+
+function ExperimentProjectCard({ project }: { project: Project }) {
+  const primaryLink = project.links[0];
+
+  return (
+    <motion.article
+      whileHover={{ y: -1 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className="group rounded-[18px] border border-black/[0.055] bg-white/[0.12] p-5 text-left transition duration-500 hover:border-black/[0.11] hover:bg-white/[0.2] sm:p-7"
+    >
+      <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-end">
+        <div>
+          <p className="mb-4 text-[10px] font-medium uppercase tracking-[0.24em] text-black/32">
+            Secondary experiment
+          </p>
+          <h3 className="text-2xl font-medium tracking-[0.01em] text-black/74">
+            {project.title}
+          </h3>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-black/50">
+            {project.description}
+          </p>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            {project.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-black/[0.055] bg-white/[0.12] px-3 py-1.5 text-[10px] font-medium tracking-[0.13em] text-black/38"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4 md:items-end">
+          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-black/30">
+            {project.status}
+          </p>
+          {primaryLink ? (
+            primaryLink.href.startsWith("/") ? (
+              <Link
+                href={primaryLink.href}
+                className="inline-flex min-h-11 w-fit items-center rounded-full border border-black/[0.075] px-5 text-[11px] font-medium tracking-[0.16em] text-black/50 transition duration-300 hover:border-black/[0.14] hover:bg-white/32 hover:text-black/68 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
+              >
+                {primaryLink.label}
+              </Link>
+            ) : (
+              <a
+                href={primaryLink.href}
+                target={isExternalLink(primaryLink.href) ? "_blank" : undefined}
+                rel={isExternalLink(primaryLink.href) ? "noreferrer" : undefined}
+                className="inline-flex min-h-11 w-fit items-center rounded-full border border-black/[0.075] px-5 text-[11px] font-medium tracking-[0.16em] text-black/50 transition duration-300 hover:border-black/[0.14] hover:bg-white/32 hover:text-black/68 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
+              >
+                {primaryLink.label}
+              </a>
+            )
+          ) : null}
         </div>
       </div>
     </motion.article>

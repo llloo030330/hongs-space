@@ -6,6 +6,7 @@ export type ProjectLink = {
 
 export type Project = {
   title: string;
+  variant?: "case-study" | "experiment";
   description: string;
   tags: string[];
   context: string;
@@ -23,6 +24,7 @@ export type Project = {
 export const projects: Project[] = [
   {
     title: "WeChat Ordering System",
+    variant: "case-study",
     description:
       "A QR-code ordering mini program for small restaurants, focused on table sessions, merchant operations, and real-time order flow.",
     tags: [
@@ -89,11 +91,12 @@ export const projects: Project[] = [
   },
   {
     title: "Brain Garden",
+    variant: "experiment",
     description:
-      "A daily brain training experiment with short focus, memory, and attention games.",
-    tags: ["Experiment", "React", "Interaction", "Daily Practice"],
+      "A quiet cognitive exercise experiment for focus, memory, attention, and quick rule switching.",
+    tags: ["Experiment", "Interaction", "Cognitive Practice", "React"],
     context:
-      "A small web experiment adapted from an earlier brain training prototype.",
+      "A small daily brain training experiment with focus, memory, attention, and rule-switching games.",
     systemFlow: [
       "Choose practice",
       "Start short game",
@@ -105,6 +108,7 @@ export const projects: Project[] = [
       "Memory Path",
       "Stroop Focus",
       "Schulte Grid",
+      "RPS Logic",
       "Local Progress",
     ],
     role:
@@ -112,11 +116,12 @@ export const projects: Project[] = [
     problem:
       "Small cognitive exercises can become noisy or game-like too quickly, which does not fit Hong's Space.",
     solution:
-      "A restrained experiment page with three short games, local-only progress, and a quiet interface that stays separate from the homepage hero.",
+      "A restrained experiment page with four short games, local-only progress, and a quiet interface that stays separate from the homepage hero.",
     coreFeatures: [
       "Memory path sequence practice",
       "Stroop color attention practice",
       "Schulte visual search grid",
+      "Rock Paper Scissors rule-switching exercise",
       "Best score saved locally",
       "No login or database",
       "Mobile-friendly layout",
@@ -126,7 +131,7 @@ export const projects: Project[] = [
     links: [
       {
         label: "Open Experiment",
-        value: "Open Brain Garden",
+        value: "Open Experiment",
         href: "/experiments/brain-garden",
       },
     ],

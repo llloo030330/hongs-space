@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useCallback, useMemo, useState } from "react";
 import { PhotoLightbox } from "@/components/sections/PhotoLightbox";
 import {
@@ -18,6 +18,13 @@ const stackStyles = [
   { rotate: 3.4, x: 10, y: 28, scale: 0.955, zIndex: 20 },
   { rotate: -3.2, x: 28, y: 24, scale: 0.94, zIndex: 10 },
 ];
+
+const stackTransition = {
+  duration: 0.66,
+  ease: [0.22, 1, 0.36, 1] as const,
+};
+
+type StackDirection = "next" | "previous";
 
 function PhotoCaption({ photo }: { photo: GalleryPhoto }) {
   const meta = formatPhotoMeta(photo);
@@ -72,29 +79,78 @@ function EmptyPhotoStack() {
 
 function PhotoStack() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [incomingIndex, setIncomingIndex] = useState<number | null>(null);
+  const [direction, setDirection] = useState<StackDirection>("next");
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const visiblePhotos = useMemo(() => {
+  const shouldReduceMotion = useReducedMotion();
+  const activeStackIndex = incomingIndex ?? activeIndex;
+  const stackPhotos = useMemo(() => {
+    if (galleryPhotos.length === 0) return [];
+
+    const startStyleIndex = incomingIndex === null ? 0 : 1;
+
     return stackStyles
-      .slice(0, galleryPhotos.length)
-      .map((_, index) => galleryPhotos[(activeIndex + index) % galleryPhotos.length]);
-  }, [activeIndex]);
+      .slice(startStyleIndex, galleryPhotos.length)
+      .map((style, offset) => {
+        const styleIndex = startStyleIndex + offset;
+
+        return {
+          photo: galleryPhotos[
+            (activeStackIndex + styleIndex) % galleryPhotos.length
+          ],
+          style,
+          styleIndex,
+        };
+      });
+  }, [activeStackIndex, incomingIndex]);
 
   if (galleryPhotos.length === 0) {
     return <EmptyPhotoStack />;
   }
 
   const activePhoto = galleryPhotos[activeIndex];
+  const incomingPhoto =
+    incomingIndex === null ? null : galleryPhotos[incomingIndex];
+  const captionPhoto = incomingPhoto ?? activePhoto;
+  const completeTransition = useCallback(() => {
+    if (incomingIndex === null) return;
+
+    setActiveIndex(incomingIndex);
+    setIncomingIndex(null);
+    setIsTransitioning(false);
+  }, [incomingIndex]);
+  const startTransition = useCallback(
+    (nextDirection: StackDirection) => {
+      if (galleryPhotos.length < 2 || isTransitioning) return;
+
+      const nextIndex =
+        nextDirection === "next"
+          ? (activeIndex + 1) % galleryPhotos.length
+          : (activeIndex - 1 + galleryPhotos.length) % galleryPhotos.length;
+
+      if (shouldReduceMotion) {
+        setActiveIndex(nextIndex);
+        return;
+      }
+
+      setDirection(nextDirection);
+      setIncomingIndex(nextIndex);
+      setIsTransitioning(true);
+    },
+    [activeIndex, isTransitioning, shouldReduceMotion],
+  );
   const showNext = useCallback(() => {
-    setActiveIndex((index) => (index + 1) % galleryPhotos.length);
-  }, []);
+    startTransition("next");
+  }, [startTransition]);
   const showPrevious = useCallback(() => {
-    setActiveIndex(
-      (index) => (index - 1 + galleryPhotos.length) % galleryPhotos.length,
-    );
-  }, []);
+    startTransition("previous");
+  }, [startTransition]);
   const openLightbox = useCallback(() => {
+    if (isTransitioning) return;
+
     setLightboxIndex(activeIndex);
-  }, [activeIndex]);
+  }, [activeIndex, isTransitioning]);
   const closeLightbox = useCallback(() => {
     setLightboxIndex(null);
   }, []);
@@ -114,16 +170,17 @@ function PhotoStack() {
   return (
     <div className="mx-auto mt-16 w-full max-w-[520px]">
       <div className="relative mx-auto aspect-[4/5] w-[82vw] max-w-[380px] sm:w-[420px]">
-        {visiblePhotos.map((photo, index) => {
-          const style = stackStyles[index];
-
+        {stackPhotos.map(({ photo, style, styleIndex }) => {
           return (
             <figure
-              key={`${photo.src}-${index}`}
+              key={`${photo.src}-${styleIndex}`}
               className="absolute inset-0 overflow-hidden rounded-[18px] border border-white/70 bg-white shadow-[0_24px_80px_rgba(36,36,30,0.13)] transition duration-500 ease-out"
               style={{
                 zIndex: style.zIndex,
+                opacity: 1,
                 transform: `translate3d(${style.x}px, ${style.y}px, 0) rotate(${style.rotate}deg) scale(${style.scale})`,
+                transition:
+                  "transform 660ms cubic-bezier(0.22, 1, 0.36, 1), opacity 520ms cubic-bezier(0.22, 1, 0.36, 1)",
               }}
             >
               <Image
@@ -132,37 +189,102 @@ function PhotoStack() {
                 fill
                 sizes="(max-width: 640px) 82vw, 420px"
                 className="object-cover"
-                priority={index === 0}
+                priority={styleIndex === 0}
               />
             </figure>
           );
         })}
 
+        {incomingPhoto ? (
+          <motion.figure
+            key={`outgoing-${activePhoto.src}-${incomingIndex}`}
+            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[18px] border border-white/70 bg-white shadow-[0_24px_80px_rgba(36,36,30,0.13)]"
+            style={{ zIndex: 55 }}
+            initial={{
+              y: stackStyles[0].y,
+              rotate: stackStyles[0].rotate,
+              opacity: 1,
+              scale: stackStyles[0].scale,
+            }}
+            animate={{
+              y: -8,
+              rotate: stackStyles[0].rotate,
+              opacity: 0.78,
+              scale: 0.988,
+            }}
+            transition={stackTransition}
+          >
+            <Image
+              src={activePhoto.src}
+              alt={activePhoto.alt}
+              fill
+              sizes="(max-width: 640px) 82vw, 420px"
+              className="object-cover"
+              priority
+            />
+          </motion.figure>
+        ) : null}
+
+        {incomingPhoto ? (
+          <motion.figure
+            key={`incoming-${direction}-${incomingPhoto.src}`}
+            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[18px] border border-white/75 bg-white shadow-[0_26px_86px_rgba(36,36,30,0.15)]"
+            style={{ zIndex: 70 }}
+            initial={{
+              y: direction === "next" ? 96 : -72,
+              rotate:
+                stackStyles[0].rotate + (direction === "next" ? 3.2 : -2.6),
+              opacity: direction === "next" ? 0.92 : 0.9,
+              scale: 0.992,
+            }}
+            animate={{
+              y: stackStyles[0].y,
+              rotate: stackStyles[0].rotate,
+              opacity: 1,
+              scale: stackStyles[0].scale,
+            }}
+            transition={stackTransition}
+            onAnimationComplete={completeTransition}
+          >
+            <Image
+              src={incomingPhoto.src}
+              alt={incomingPhoto.alt}
+              fill
+              sizes="(max-width: 640px) 82vw, 420px"
+              className="object-cover"
+              priority
+            />
+          </motion.figure>
+        ) : null}
+
         <button
           type="button"
+          disabled={isTransitioning}
           onClick={openLightbox}
-          className="absolute inset-0 z-[60] rounded-[20px] outline-none transition duration-500 hover:-translate-y-1 hover:scale-[1.01] focus-visible:ring-2 focus-visible:ring-black/16"
+          className="absolute inset-0 z-[60] rounded-[20px] outline-none transition duration-500 hover:-translate-y-1 hover:scale-[1.01] focus-visible:ring-2 focus-visible:ring-black/16 disabled:cursor-default"
           aria-label="Open current photo"
         />
       </div>
 
-      <PhotoCaption photo={activePhoto} />
+      <PhotoCaption photo={captionPhoto} />
 
       {galleryPhotos.length > 1 ? (
         <div className="mt-8 flex items-center justify-center gap-3">
           <button
             type="button"
             onClick={showPrevious}
+            disabled={isTransitioning}
             aria-label="Show previous photo"
-            className="min-h-11 rounded-full border border-black/[0.08] px-5 text-xs tracking-[0.16em] text-black/44 transition duration-300 hover:border-black/[0.14] hover:text-black/62 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/16"
+            className="min-h-11 rounded-full border border-black/[0.08] px-5 text-xs tracking-[0.16em] text-black/44 transition duration-300 hover:border-black/[0.14] hover:text-black/62 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/16 disabled:cursor-default disabled:opacity-45"
           >
             Previous
           </button>
           <button
             type="button"
             onClick={showNext}
+            disabled={isTransitioning}
             aria-label="Show next photo"
-            className="min-h-11 rounded-full border border-black/[0.08] px-5 text-xs tracking-[0.16em] text-black/44 transition duration-300 hover:border-black/[0.14] hover:text-black/62 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/16"
+            className="min-h-11 rounded-full border border-black/[0.08] px-5 text-xs tracking-[0.16em] text-black/44 transition duration-300 hover:border-black/[0.14] hover:text-black/62 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/16 disabled:cursor-default disabled:opacity-45"
           >
             Next
           </button>
