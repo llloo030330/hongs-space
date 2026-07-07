@@ -1,12 +1,26 @@
 "use client";
 
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useRef, type MutableRefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from "react";
 import * as THREE from "three";
 import {
   DRAG_TILT_STRENGTH,
+  GYRO_DEAD_ZONE_DEGREES,
+  GYRO_MAX_DEGREES,
+  GYRO_SMOOTHING,
+  GYRO_TILT_STRENGTH,
+  GYRO_X_SIGN,
+  GYRO_Z_SIGN,
   HOVER_TILT_STRENGTH,
   MAX_DRAG_TILT,
+  MAX_GYRO_TILT,
   MAX_HOVER_TILT,
   MOBILE_AUTO_TILT_STRENGTH,
 } from "./heroTuning";
@@ -26,6 +40,19 @@ export type HeroInteractionState = {
 
 export type HeroInteractionRef = MutableRefObject<HeroInteractionState>;
 
+export type MotionControlStatus =
+  | "idle"
+  | "enabled"
+  | "denied"
+  | "unsupported";
+
+export type HeroInteractionControls = {
+  interactionRef: HeroInteractionRef;
+  isMobileInput: boolean;
+  motionStatus: MotionControlStatus;
+  requestMotionPermission: () => Promise<void>;
+};
+
 type PointerState = {
   isFinePointer: boolean;
   isDragging: boolean;
@@ -40,6 +67,14 @@ type PointerState = {
   targetTiltZ: number;
   dragVelocityX: number;
   dragVelocityY: number;
+};
+
+type GyroState = {
+  isEnabled: boolean;
+  baselineBeta: number | null;
+  baselineGamma: number | null;
+  targetTiltX: number;
+  targetTiltZ: number;
 };
 
 const initialInteractionState: HeroInteractionState = {
@@ -59,8 +94,26 @@ const maxOffsetX = 0.35;
 const maxOffsetY = 0.22;
 const dragSensitivity = 0.003;
 
+function normalizeGyroDelta(value: number) {
+  const finiteValue = Number.isFinite(value) ? value : 0;
+  const magnitude = Math.abs(finiteValue);
+
+  if (magnitude < GYRO_DEAD_ZONE_DEGREES) {
+    return 0;
+  }
+
+  const adjusted =
+    Math.sign(finiteValue) * (magnitude - GYRO_DEAD_ZONE_DEGREES);
+  const range = GYRO_MAX_DEGREES - GYRO_DEAD_ZONE_DEGREES;
+
+  return THREE.MathUtils.clamp(adjusted / range, -1, 1);
+}
+
 export function useHeroInteraction() {
   const { gl } = useThree();
+  const [isMobileInput, setIsMobileInput] = useState(false);
+  const [motionStatus, setMotionStatus] =
+    useState<MotionControlStatus>("idle");
   const liveStateRef = useRef<HeroInteractionState>(initialInteractionState);
   const pointerRef = useRef<PointerState>({
     isFinePointer: true,
@@ -77,12 +130,113 @@ export function useHeroInteraction() {
     dragVelocityX: 0,
     dragVelocityY: 0,
   });
+  const gyroRef = useRef<GyroState>({
+    isEnabled: false,
+    baselineBeta: null,
+    baselineGamma: null,
+    targetTiltX: 0,
+    targetTiltZ: 0,
+  });
+  const isListeningForOrientationRef = useRef(false);
+
+  const handleDeviceOrientation = useCallback(
+    (event: DeviceOrientationEvent) => {
+      const gyro = gyroRef.current;
+      const beta = event.beta;
+      const gamma = event.gamma;
+
+      if (typeof beta !== "number" || typeof gamma !== "number") {
+        return;
+      }
+
+      if (gyro.baselineBeta === null || gyro.baselineGamma === null) {
+        gyro.baselineBeta = beta;
+        gyro.baselineGamma = gamma;
+      }
+
+      const betaDelta = beta - gyro.baselineBeta;
+      const gammaDelta = gamma - gyro.baselineGamma;
+      const normalizedX = normalizeGyroDelta(gammaDelta);
+      const normalizedZ = normalizeGyroDelta(betaDelta);
+
+      gyro.targetTiltZ = THREE.MathUtils.clamp(
+        normalizedX * GYRO_TILT_STRENGTH * GYRO_X_SIGN,
+        -MAX_GYRO_TILT,
+        MAX_GYRO_TILT,
+      );
+      gyro.targetTiltX = THREE.MathUtils.clamp(
+        normalizedZ * GYRO_TILT_STRENGTH * GYRO_Z_SIGN,
+        -MAX_GYRO_TILT,
+        MAX_GYRO_TILT,
+      );
+    },
+    [],
+  );
+
+  const startDeviceOrientation = useCallback(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    if (!("DeviceOrientationEvent" in window)) {
+      return false;
+    }
+
+    if (!isListeningForOrientationRef.current) {
+      window.addEventListener("deviceorientation", handleDeviceOrientation, {
+        passive: true,
+      });
+      isListeningForOrientationRef.current = true;
+    }
+
+    gyroRef.current.isEnabled = true;
+    gyroRef.current.baselineBeta = null;
+    gyroRef.current.baselineGamma = null;
+    gyroRef.current.targetTiltX = 0;
+    gyroRef.current.targetTiltZ = 0;
+
+    return true;
+  }, [handleDeviceOrientation]);
+
+  const requestMotionPermission = useCallback(async () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!("DeviceOrientationEvent" in window)) {
+      setMotionStatus("unsupported");
+      return;
+    }
+
+    const OrientationEvent = window.DeviceOrientationEvent as unknown as {
+      requestPermission?: () => Promise<PermissionState>;
+    };
+
+    try {
+      if (typeof OrientationEvent.requestPermission === "function") {
+        const permission = await OrientationEvent.requestPermission();
+
+        if (permission !== "granted") {
+          gyroRef.current.isEnabled = false;
+          setMotionStatus("denied");
+          return;
+        }
+      }
+
+      const didStart = startDeviceOrientation();
+      setMotionStatus(didStart ? "enabled" : "unsupported");
+    } catch {
+      gyroRef.current.isEnabled = false;
+      setMotionStatus("denied");
+    }
+  }, [startDeviceOrientation]);
 
   useEffect(() => {
     const element = gl.domElement;
     const pointer = pointerRef.current;
 
     pointer.isFinePointer = window.matchMedia("(pointer: fine)").matches;
+    setIsMobileInput(!pointer.isFinePointer);
 
     const handlePointerDown = (event: PointerEvent) => {
       if (!pointer.isFinePointer) {
@@ -180,18 +334,66 @@ export function useHeroInteraction() {
     };
   }, [gl]);
 
+  useEffect(() => {
+    return () => {
+      if (
+        typeof window !== "undefined" &&
+        isListeningForOrientationRef.current
+      ) {
+        window.removeEventListener(
+          "deviceorientation",
+          handleDeviceOrientation,
+        );
+        isListeningForOrientationRef.current = false;
+      }
+    };
+  }, [handleDeviceOrientation]);
+
   useFrame(({ clock }, delta) => {
     const pointer = pointerRef.current;
+    const gyro = gyroRef.current;
     const previous = liveStateRef.current;
     const frameDelta = Math.min(delta, 1 / 30);
 
     if (!pointer.isFinePointer) {
-      pointer.targetOffsetX = Math.sin(clock.elapsedTime * 0.45) * 0.05;
-      pointer.targetOffsetY = Math.cos(clock.elapsedTime * 0.38) * 0.03;
-      pointer.targetTiltX =
-        Math.cos(clock.elapsedTime * 0.38) * MOBILE_AUTO_TILT_STRENGTH;
-      pointer.targetTiltZ =
-        -Math.sin(clock.elapsedTime * 0.45) * MOBILE_AUTO_TILT_STRENGTH;
+      if (gyro.isEnabled) {
+        const normalizedTiltX =
+          MAX_GYRO_TILT > 0 ? gyro.targetTiltX / MAX_GYRO_TILT : 0;
+        const normalizedTiltZ =
+          MAX_GYRO_TILT > 0 ? gyro.targetTiltZ / MAX_GYRO_TILT : 0;
+
+        pointer.targetOffsetX = THREE.MathUtils.damp(
+          pointer.targetOffsetX,
+          normalizedTiltZ * maxOffsetX * 0.26,
+          GYRO_SMOOTHING,
+          frameDelta,
+        );
+        pointer.targetOffsetY = THREE.MathUtils.damp(
+          pointer.targetOffsetY,
+          normalizedTiltX * maxOffsetY * 0.2,
+          GYRO_SMOOTHING,
+          frameDelta,
+        );
+        pointer.targetTiltX = THREE.MathUtils.damp(
+          pointer.targetTiltX,
+          gyro.targetTiltX,
+          GYRO_SMOOTHING,
+          frameDelta,
+        );
+        pointer.targetTiltZ = THREE.MathUtils.damp(
+          pointer.targetTiltZ,
+          gyro.targetTiltZ,
+          GYRO_SMOOTHING,
+          frameDelta,
+        );
+      } else {
+        pointer.targetOffsetX = Math.sin(clock.elapsedTime * 0.45) * 0.05;
+        pointer.targetOffsetY = Math.cos(clock.elapsedTime * 0.38) * 0.03;
+        pointer.targetTiltX =
+          Math.cos(clock.elapsedTime * 0.38) * MOBILE_AUTO_TILT_STRENGTH;
+        pointer.targetTiltZ =
+          -Math.sin(clock.elapsedTime * 0.45) * MOBILE_AUTO_TILT_STRENGTH;
+      }
       pointer.dragVelocityX = 0;
       pointer.dragVelocityY = 0;
     } else if (!pointer.isDragging && performance.now() - pointer.lastMoveTime > 900) {
@@ -304,5 +506,13 @@ export function useHeroInteraction() {
     liveStateRef.current = nextState;
   });
 
-  return liveStateRef;
+  return useMemo<HeroInteractionControls>(
+    () => ({
+      interactionRef: liveStateRef,
+      isMobileInput,
+      motionStatus,
+      requestMotionPermission,
+    }),
+    [isMobileInput, motionStatus, requestMotionPermission],
+  );
 }

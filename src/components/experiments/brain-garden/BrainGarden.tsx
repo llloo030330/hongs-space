@@ -167,17 +167,17 @@ export function BrainGarden() {
   );
 
   return (
-    <main className="min-h-[100dvh] overflow-x-hidden bg-[#f5f5f2] px-5 py-8 text-[#151515] sm:px-8 sm:py-10 lg:px-12">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 sm:gap-12">
-        <header className="flex flex-col gap-7 border-b border-black/[0.07] pb-9 sm:flex-row sm:items-end sm:justify-between">
+    <main className="min-h-[100svh] overflow-x-hidden bg-[#f5f5f2] px-4 py-5 text-[#151515] sm:px-8 sm:py-10 lg:px-12">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 sm:gap-12">
+        <header className="flex flex-col gap-4 border-b border-black/[0.07] pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-7 sm:pb-9">
           <div className="max-w-3xl">
-            <p className="mb-5 text-[10px] font-medium uppercase tracking-[0.28em] text-black/36">
+            <p className="mb-3 text-[9px] font-medium uppercase tracking-[0.24em] text-black/36 sm:mb-5 sm:text-[10px] sm:tracking-[0.28em]">
               Experiment
             </p>
-            <h1 className="text-4xl font-medium tracking-[0.01em] text-black/82 sm:text-5xl">
+            <h1 className="text-3xl font-medium tracking-[0.01em] text-black/82 sm:text-5xl">
               Brain Garden
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-black/52 sm:text-lg sm:leading-9">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-black/52 sm:mt-6 sm:text-lg sm:leading-9">
               A small daily experiment for focus, memory, and attention. It is
               a mental warm-up, not a medical tool.
             </p>
@@ -185,13 +185,13 @@ export function BrainGarden() {
 
           <Link
             href="/#projects"
-            className="inline-flex min-h-11 w-fit items-center rounded-full border border-black/[0.08] px-5 text-[11px] font-medium tracking-[0.16em] text-black/48 transition duration-300 hover:border-black/[0.14] hover:bg-white/35 hover:text-black/66 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
+            className="inline-flex min-h-10 w-fit items-center rounded-full border border-black/[0.08] px-4 text-[10px] font-medium tracking-[0.14em] text-black/48 transition duration-300 hover:border-black/[0.14] hover:bg-white/35 hover:text-black/66 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 sm:min-h-11 sm:px-5 sm:text-[11px] sm:tracking-[0.16em]"
           >
             Back to Hong's Space
           </Link>
         </header>
 
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           <Metric label="Memory best" value={`${stats.bestMemoryScore}`} />
           <Metric label="Stroop best" value={`${stats.bestStroopScore}`} />
           <Metric
@@ -205,41 +205,41 @@ export function BrainGarden() {
           <Metric label="Sessions" value={`${stats.sessions}`} />
         </section>
 
-        <section className="grid gap-7 lg:grid-cols-[0.68fr_1.32fr]">
-          <aside className="space-y-5">
+        <section className="grid gap-4 sm:gap-7 lg:grid-cols-[0.68fr_1.32fr]">
+          <aside className="space-y-3 sm:space-y-5">
             <div>
-              <p className="mb-4 text-[10px] font-medium uppercase tracking-[0.22em] text-black/34">
+              <p className="mb-3 text-[9px] font-medium uppercase tracking-[0.2em] text-black/34 sm:mb-4 sm:text-[10px] sm:tracking-[0.22em]">
                 Today's Session
               </p>
-              <p className="max-w-md text-sm leading-7 text-black/48">
+              <p className="hidden max-w-md text-sm leading-7 text-black/48 sm:block">
                 Pick one exercise at a time. Each game is intentionally short
                 and quiet.
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-1">
               {games.map((game) => (
                 <button
                   key={game.id}
                   type="button"
                   onClick={() => setActiveGame(game.id)}
-                  className={`rounded-[18px] border p-5 text-left transition duration-300 hover:-translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 ${
+                  className={`rounded-[14px] border p-3 text-left transition duration-300 hover:-translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 sm:rounded-[18px] sm:p-5 ${
                     activeGame === game.id
                       ? "border-black/[0.16] bg-white/[0.42] text-black/76 shadow-[0_1px_12px_rgba(0,0,0,0.035)]"
                       : "border-black/[0.06] bg-white/[0.14] text-black/52 hover:border-black/[0.11] hover:bg-white/[0.26]"
                   }`}
                 >
-                  <span className="block text-base font-medium">
+                  <span className="block text-sm font-medium sm:text-base">
                     {game.title}
                   </span>
-                  <span className="mt-3 block text-sm leading-6 text-black/45">
+                  <span className="mt-3 hidden text-sm leading-6 text-black/45 sm:block">
                     {game.description}
                   </span>
-                  <span className="mt-4 flex flex-wrap gap-2">
+                  <span className="mt-2 flex flex-wrap gap-1.5 sm:mt-4 sm:gap-2">
                     {game.tags?.map((tag) => (
                       <span
                         key={tag}
-                        className={`rounded-full border px-2.5 py-1 text-[10px] font-medium tracking-[0.12em] ${
+                        className={`rounded-full border px-2 py-0.5 text-[8.5px] font-medium tracking-[0.08em] sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-[0.12em] ${
                           activeGame === game.id
                             ? "border-black/[0.08] bg-white/[0.24] text-black/44"
                             : "border-black/[0.055] text-black/34"
@@ -253,12 +253,12 @@ export function BrainGarden() {
               ))}
             </div>
 
-            <p className="rounded-[18px] border border-black/[0.055] bg-white/[0.12] p-4 text-sm leading-7 text-black/48">
+            <p className="hidden rounded-[18px] border border-black/[0.055] bg-white/[0.12] p-4 text-sm leading-7 text-black/48 sm:block">
               {latestResult}
             </p>
           </aside>
 
-          <div className="rounded-[22px] border border-black/[0.065] bg-white/[0.24] p-5 shadow-[0_18px_70px_rgba(36,36,30,0.055)] backdrop-blur-xl sm:p-7 lg:p-8">
+          <div className="rounded-[18px] border border-black/[0.065] bg-white/[0.24] p-3.5 shadow-[0_12px_42px_rgba(36,36,30,0.045)] backdrop-blur-xl sm:rounded-[22px] sm:p-7 sm:shadow-[0_18px_70px_rgba(36,36,30,0.055)] lg:p-8">
             {activeGame === "memory" ? (
               <MemoryPathGame onComplete={recordResult} />
             ) : null}
@@ -282,11 +282,13 @@ export function BrainGarden() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-t border-black/[0.07] pt-5">
-      <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-black/32">
+    <div className="border-t border-black/[0.07] pt-3 sm:pt-5">
+      <p className="text-[8.5px] font-medium uppercase tracking-[0.14em] text-black/32 sm:text-[10px] sm:tracking-[0.2em]">
         {label}
       </p>
-      <p className="mt-3 text-2xl font-medium text-black/72">{value}</p>
+      <p className="mt-1.5 text-lg font-medium text-black/72 sm:mt-3 sm:text-2xl">
+        {value}
+      </p>
     </div>
   );
 }
@@ -299,14 +301,14 @@ function GameHeader({
   description: string;
 }) {
   return (
-    <div className="mb-7 border-b border-black/[0.045] pb-6">
-      <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.22em] text-black/34">
+    <div className="mb-4 border-b border-black/[0.045] pb-3 sm:mb-7 sm:pb-6">
+      <p className="mb-2 hidden text-[10px] font-medium uppercase tracking-[0.22em] text-black/34 sm:block">
         Practice
       </p>
-      <h2 className="text-2xl font-medium text-black/78 sm:text-3xl">
+      <h2 className="text-xl font-medium text-black/78 sm:text-3xl">
         {title}
       </h2>
-      <p className="mt-4 max-w-2xl text-sm leading-7 text-black/48">
+      <p className="mt-3 hidden max-w-2xl text-sm leading-7 text-black/48 sm:block">
         {description}
       </p>
     </div>
@@ -505,13 +507,15 @@ function MemoryPathGame({
         description="Watch a sequence of quiet cells. Repeat it in order after the lights stop."
       />
 
-      <div className="mb-4 flex items-center justify-between gap-4 text-xs text-black/38">
+      <div className="mb-3 flex items-center justify-between gap-3 text-[11px] text-black/38 sm:mb-4 sm:text-xs">
         <p>{status}</p>
-        <p className="uppercase tracking-[0.14em]">{progressHint}</p>
+        <p className="text-right uppercase tracking-[0.1em] sm:tracking-[0.14em]">
+          {progressHint}
+        </p>
       </div>
 
-      <div className="rounded-[20px] border border-black/[0.045] bg-white/[0.12] p-3.5 sm:p-4">
-        <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
+      <div className="mx-auto max-w-[300px] rounded-[16px] border border-black/[0.045] bg-white/[0.12] p-2.5 sm:max-w-none sm:rounded-[20px] sm:p-4">
+        <div className="grid grid-cols-4 gap-2 sm:gap-3">
         {Array.from({ length: 16 }, (_, index) => {
           const feedbackType =
             feedbackTile?.index === index ? feedbackTile.type : null;
@@ -547,7 +551,7 @@ function MemoryPathGame({
               disabled={!accepting || isShowing}
               aria-label={`Memory path cell ${index + 1}`}
               onClick={() => handleCellClick(index)}
-              className={`aspect-square touch-manipulation rounded-[14px] border transition duration-150 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-black/18 disabled:pointer-events-none ${stateClass}`}
+              className={`aspect-square touch-manipulation rounded-[12px] border transition duration-150 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-black/18 disabled:pointer-events-none sm:rounded-[14px] ${stateClass}`}
             />
           );
         })}
@@ -730,22 +734,25 @@ function StroopFocusGame({
       />
 
       <div
-        className={`grid min-h-48 place-items-center rounded-[20px] border p-7 text-center shadow-[0_1px_10px_rgba(0,0,0,0.025)] transition duration-200 sm:p-8 ${panelFeedbackClass}`}
+        className={`grid min-h-32 place-items-center rounded-[16px] border p-4 text-center shadow-[0_1px_10px_rgba(0,0,0,0.025)] transition duration-200 sm:min-h-48 sm:rounded-[20px] sm:p-8 ${panelFeedbackClass}`}
       >
         <div>
           <p
-            className="text-5xl font-semibold uppercase tracking-[0.02em] sm:text-7xl"
+            className="text-4xl font-semibold uppercase tracking-[0.02em] sm:text-7xl"
             style={{ color: question?.inkColor.value ?? "#151515" }}
           >
             {question?.wordText.label ?? "Ready"}
           </p>
-          <p className="mt-5 text-xs tracking-[0.14em] text-black/38">
-            Choose the text color, not the word.
+          <p className="mt-2 text-[11px] tracking-[0.1em] text-black/38 sm:mt-5 sm:text-xs sm:tracking-[0.14em]">
+            <span className="sm:hidden">Choose the text color.</span>
+            <span className="hidden sm:inline">
+              Choose the text color, not the word.
+            </span>
           </p>
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-5 sm:grid-cols-4 sm:gap-3">
         {(question?.options ??
           stroopColors.slice(0, 4).map((color) => ({
             name: color.name,
@@ -770,7 +777,7 @@ function StroopFocusGame({
               type="button"
               disabled={!active || isResolving}
               onClick={() => answer(option.name)}
-              className={`inline-flex min-h-12 items-center justify-center rounded-full border px-4 text-[11px] font-semibold uppercase tracking-[0.14em] transition duration-300 hover:-translate-y-px disabled:cursor-not-allowed ${
+              className={`inline-flex min-h-11 items-center justify-center rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] transition duration-300 hover:-translate-y-px disabled:cursor-not-allowed sm:min-h-12 sm:px-4 sm:tracking-[0.14em] ${
                 !active ? "opacity-45" : ""
               } ${optionFeedbackClass}`}
               style={{ color: option.textColor.value }}
@@ -887,20 +894,20 @@ function SchulteGridGame({
         description="Find 1 to 25 in order. The goal is steady attention, not frantic speed."
       />
 
-      <div className="mb-5 flex flex-wrap gap-3 text-sm text-black/48">
-        <span className="rounded-full border border-black/[0.06] bg-white/[0.14] px-4 py-2">
+      <div className="mb-3 grid grid-cols-3 gap-2 text-[11px] text-black/48 sm:mb-5 sm:flex sm:flex-wrap sm:gap-3 sm:text-sm">
+        <span className="rounded-full border border-black/[0.06] bg-white/[0.14] px-2.5 py-1.5 text-center sm:px-4 sm:py-2">
           Next {next <= 25 ? next : "done"}
         </span>
-        <span className="rounded-full border border-black/[0.06] bg-white/[0.14] px-4 py-2">
+        <span className="rounded-full border border-black/[0.06] bg-white/[0.14] px-2.5 py-1.5 text-center sm:px-4 sm:py-2">
           {elapsed.toFixed(1)}s
         </span>
-        <span className="rounded-full border border-black/[0.06] bg-white/[0.14] px-4 py-2">
+        <span className="rounded-full border border-black/[0.06] bg-white/[0.14] px-2.5 py-1.5 text-center sm:px-4 sm:py-2">
           Errors {errors}
         </span>
       </div>
 
-      <div className="rounded-[20px] border border-black/[0.045] bg-white/[0.12] p-3 sm:p-4">
-        <div className="grid grid-cols-5 gap-2 sm:gap-2.5">
+      <div className="mx-auto max-w-[320px] rounded-[16px] border border-black/[0.045] bg-white/[0.12] p-2 sm:max-w-none sm:rounded-[20px] sm:p-4">
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5">
           {numbers.map((number) => {
             const isDone = doneNumbers.includes(number);
 
@@ -909,7 +916,7 @@ function SchulteGridGame({
                 key={number}
                 type="button"
                 onClick={() => handleClick(number)}
-                className={`aspect-square rounded-[12px] border text-lg font-medium transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 sm:text-2xl ${
+                className={`aspect-square rounded-[10px] border text-base font-medium transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 sm:rounded-[12px] sm:text-2xl ${
                   isDone
                     ? "border-black/[0.045] bg-white/[0.12] text-black/22"
                     : "border-black/[0.105] bg-white/[0.52] text-black/64 shadow-[0_1px_8px_rgba(0,0,0,0.035)] hover:-translate-y-px hover:border-black/[0.18] hover:bg-white/[0.68]"
@@ -953,20 +960,22 @@ function GameFooter({
   onSecondary?: () => void;
 }) {
   return (
-    <footer className="mt-7 flex flex-col gap-4 border-t border-black/[0.06] pt-5 sm:flex-row sm:items-center sm:justify-between">
-      <div className="space-y-1">
-        <p className="text-sm text-black/58">{status}</p>
-        <p className="text-xs uppercase tracking-[0.14em] text-black/34">
+    <footer className="mt-4 flex flex-row flex-wrap items-center justify-between gap-3 border-t border-black/[0.06] pt-3 sm:mt-7 sm:gap-4 sm:pt-5">
+      <div className="min-w-0 space-y-0.5 sm:space-y-1">
+        <p className="max-w-[11rem] truncate text-xs text-black/58 sm:max-w-none sm:text-sm">
+          {status}
+        </p>
+        <p className="text-[10px] uppercase tracking-[0.1em] text-black/34 sm:text-xs sm:tracking-[0.14em]">
           {stats}
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2 sm:gap-3">
         {secondaryLabel && onSecondary ? (
           <button
             type="button"
             onClick={onSecondary}
-            className="min-h-11 rounded-full border border-black/[0.07] px-5 text-[11px] font-medium uppercase tracking-[0.16em] text-black/42 transition duration-300 hover:border-black/[0.13] hover:text-black/62 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
+            className="min-h-10 rounded-full border border-black/[0.07] px-4 text-[10px] font-medium uppercase tracking-[0.13em] text-black/42 transition duration-300 hover:border-black/[0.13] hover:text-black/62 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 sm:min-h-11 sm:px-5 sm:text-[11px] sm:tracking-[0.16em]"
           >
             {secondaryLabel}
           </button>
@@ -975,7 +984,7 @@ function GameFooter({
           type="button"
           disabled={primaryDisabled}
           onClick={onPrimary}
-          className="min-h-11 rounded-full border border-black/[0.085] bg-white/[0.2] px-5 text-[11px] font-medium uppercase tracking-[0.16em] text-black/58 transition duration-300 hover:border-black/[0.15] hover:bg-white/[0.36] hover:text-black/74 disabled:cursor-not-allowed disabled:opacity-45 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
+          className="min-h-10 rounded-full border border-black/[0.085] bg-white/[0.2] px-4 text-[10px] font-medium uppercase tracking-[0.13em] text-black/58 transition duration-300 hover:border-black/[0.15] hover:bg-white/[0.36] hover:text-black/74 disabled:cursor-not-allowed disabled:opacity-45 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 sm:min-h-11 sm:px-5 sm:text-[11px] sm:tracking-[0.16em]"
         >
           {primaryLabel}
         </button>

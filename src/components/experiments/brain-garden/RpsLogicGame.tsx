@@ -169,49 +169,56 @@ export function RpsLogicGame({
 
   return (
     <section>
-      <div className="mb-7 border-b border-black/[0.045] pb-6">
-        <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.22em] text-black/34">
+      <div className="mb-4 border-b border-black/[0.045] pb-3 sm:mb-7 sm:pb-6">
+        <p className="mb-2 hidden text-[10px] font-medium uppercase tracking-[0.22em] text-black/34 sm:block">
           Practice
         </p>
-        <h2 className="text-2xl font-medium text-black/78 sm:text-3xl">
+        <h2 className="text-xl font-medium text-black/78 sm:text-3xl">
           RPS Logic
         </h2>
-        <p className="mt-4 max-w-2xl text-sm leading-7 text-black/48">
-          Choose the move that matches the target outcome.
+        <p className="mt-2 text-xs leading-5 text-black/48 sm:mt-4 sm:max-w-2xl sm:text-sm sm:leading-7">
+          <span className="sm:hidden">Match the goal.</span>
+          <span className="hidden sm:inline">
+            Choose the move that matches the target outcome.
+          </span>
         </p>
       </div>
 
       <div
-        className={`grid gap-4 rounded-[20px] border p-4 shadow-[0_1px_10px_rgba(0,0,0,0.025)] transition duration-200 sm:grid-cols-2 sm:p-5 ${panelFeedbackClass}`}
+        className={`grid grid-cols-2 gap-2 rounded-[16px] border p-2.5 shadow-[0_1px_10px_rgba(0,0,0,0.025)] transition duration-200 sm:gap-4 sm:rounded-[20px] sm:p-5 ${panelFeedbackClass}`}
       >
-        <div className="rounded-[16px] border border-black/[0.055] bg-white/[0.2] p-5">
-          <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-black/34">
+        <div className="rounded-[13px] border border-black/[0.055] bg-white/[0.2] p-3 sm:rounded-[16px] sm:p-5">
+          <p className="text-[8.5px] font-medium uppercase tracking-[0.16em] text-black/34 sm:text-[10px] sm:tracking-[0.2em]">
             Opponent
           </p>
           {question ? (
-            <div className="mt-4 flex flex-col items-start gap-3 text-black/74">
+            <div className="mt-2 flex items-center gap-2 text-black/74 sm:mt-4 sm:flex-col sm:items-start sm:gap-3">
               <RpsMoveImage
                 move={question.opponentMove}
-                className="size-16 sm:size-18"
+                className="size-11 sm:size-18"
               />
-              <p className="text-3xl font-medium">{question.opponentMove}</p>
+              <p className="text-base font-medium sm:text-3xl">
+                {question.opponentMove}
+              </p>
             </div>
           ) : (
-            <p className="mt-4 text-3xl font-medium text-black/38">--</p>
+            <p className="mt-3 text-xl font-medium text-black/38 sm:mt-4 sm:text-3xl">
+              --
+            </p>
           )}
         </div>
 
-        <div className="rounded-[16px] border border-black/[0.055] bg-white/[0.2] p-5">
-          <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-black/34">
+        <div className="rounded-[13px] border border-black/[0.055] bg-white/[0.2] p-3 sm:rounded-[16px] sm:p-5">
+          <p className="text-[8.5px] font-medium uppercase tracking-[0.16em] text-black/34 sm:text-[10px] sm:tracking-[0.2em]">
             Goal
           </p>
-          <p className="mt-4 text-3xl font-medium text-black/76">
+          <p className="mt-3 text-xl font-medium text-black/76 sm:mt-4 sm:text-3xl">
             {question?.targetOutcome ?? "--"}
           </p>
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+      <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-5 sm:gap-3">
         {moves.map((move) => {
           const isSelected = selectedMove === move;
           const isCorrectAnswer = question?.correctMove === move;
@@ -230,19 +237,21 @@ export function RpsLogicGame({
               type="button"
               disabled={!active || result !== null}
               onClick={() => answer(move)}
-              className={`flex min-h-32 flex-col items-center justify-center gap-3 rounded-[18px] border px-4 py-5 text-[12px] font-medium uppercase tracking-[0.16em] transition duration-300 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-36 sm:px-5 ${feedbackClass}`}
+              className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-[14px] border px-2 py-3 text-[10px] font-medium uppercase tracking-[0.12em] transition duration-300 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-36 sm:gap-3 sm:rounded-[18px] sm:px-5 sm:py-5 sm:text-[12px] sm:tracking-[0.16em] ${feedbackClass}`}
             >
-              <RpsMoveImage move={move} className="size-12 sm:size-14" />
+              <RpsMoveImage move={move} className="size-11 sm:size-14" />
               <span>{move}</span>
             </button>
           );
         })}
       </div>
 
-      <footer className="mt-7 flex flex-col gap-4 border-t border-black/[0.06] pt-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <p className="text-sm text-black/58">{status}</p>
-          <p className="text-xs uppercase tracking-[0.14em] text-black/34">
+      <footer className="mt-4 flex flex-row flex-wrap items-center justify-between gap-3 border-t border-black/[0.06] pt-3 sm:mt-7 sm:gap-4 sm:pt-5">
+        <div className="min-w-0 space-y-0.5 sm:space-y-1">
+          <p className="max-w-[11rem] truncate text-xs text-black/58 sm:max-w-none sm:text-sm">
+            {status}
+          </p>
+          <p className="text-[10px] uppercase tracking-[0.1em] text-black/34 sm:text-xs sm:tracking-[0.14em]">
             Round {active ? round : 0} / Score {score}
           </p>
         </div>
@@ -251,7 +260,7 @@ export function RpsLogicGame({
           type="button"
           disabled={active}
           onClick={start}
-          className="min-h-11 rounded-full border border-black/[0.085] bg-white/[0.2] px-5 text-[11px] font-medium uppercase tracking-[0.16em] text-black/58 transition duration-300 hover:border-black/[0.15] hover:bg-white/[0.36] hover:text-black/74 disabled:cursor-not-allowed disabled:opacity-45 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
+          className="min-h-10 rounded-full border border-black/[0.085] bg-white/[0.2] px-4 text-[10px] font-medium uppercase tracking-[0.13em] text-black/58 transition duration-300 hover:border-black/[0.15] hover:bg-white/[0.36] hover:text-black/74 disabled:cursor-not-allowed disabled:opacity-45 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 sm:min-h-11 sm:px-5 sm:text-[11px] sm:tracking-[0.16em]"
         >
           Start RPS
         </button>

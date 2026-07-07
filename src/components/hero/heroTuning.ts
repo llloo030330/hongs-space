@@ -15,6 +15,13 @@ export const DRAG_TILT_STRENGTH = 0.3;
 export const MAX_HOVER_TILT = 0.21;
 export const MAX_DRAG_TILT = 0.32;
 export const MOBILE_AUTO_TILT_STRENGTH = 0.02;
+export const GYRO_TILT_STRENGTH = 0.15;
+export const MAX_GYRO_TILT = 0.24;
+export const GYRO_SMOOTHING = 5.6;
+export const GYRO_DEAD_ZONE_DEGREES = 2.2;
+export const GYRO_MAX_DEGREES = 24;
+export const GYRO_X_SIGN = -1;
+export const GYRO_Z_SIGN = 1;
 
 export const SHADOW_OPACITY = 0.64;
 export const SHADOW_SIZE = 0.52;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Html } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useRef, type MutableRefObject, type ReactNode } from "react";
 import * as THREE from "three";
 import GlassCube from "./GlassCube";
@@ -19,6 +19,7 @@ import {
 } from "./heroTuning";
 import {
   useHeroInteraction,
+  type HeroInteractionControls,
   type HeroInteractionRef,
 } from "./useHeroInteraction";
 
@@ -67,7 +68,8 @@ export default function HeroCanvas() {
 }
 
 function HeroWorld() {
-  const interactionRef = useHeroInteraction();
+  const interactionControls = useHeroInteraction();
+  const { interactionRef } = interactionControls;
   const debugStateRef = useRef<HeroBallDebugState>({
     ...defaultHeroBallDebugState,
   });
@@ -90,6 +92,7 @@ function HeroWorld() {
           debugStateRef={debugStateRef}
         />
       )}
+      <MobileMotionControl controls={interactionControls} />
     </>
   );
 }
@@ -102,6 +105,7 @@ function CubeWorldGroup({
   children: ReactNode;
 }) {
   const groupRef = useRef<THREE.Group>(null);
+  const { camera, size } = useThree();
 
   useFrame((_, delta) => {
     const group = groupRef.current;
@@ -112,6 +116,11 @@ function CubeWorldGroup({
 
     const interaction = interactionRef.current;
     const frameDelta = Math.min(delta, 1 / 30);
+    const targetScale = getResponsiveCubeScale(size.width, size.height, camera);
+
+    group.scale.setScalar(
+      THREE.MathUtils.damp(group.scale.x, targetScale, 7.5, frameDelta),
+    );
     group.position.x = THREE.MathUtils.damp(
       group.position.x,
       interaction.currentOffsetX * 0.2,
@@ -139,6 +148,70 @@ function CubeWorldGroup({
   });
 
   return <group ref={groupRef}>{children}</group>;
+}
+
+function getResponsiveCubeScale(
+  width: number,
+  height: number,
+  camera: THREE.Camera,
+) {
+  if (width >= 640 || height <= 0 || !(camera instanceof THREE.PerspectiveCamera)) {
+    return 1;
+  }
+
+  const aspect = width / height;
+  const distance = Math.abs(camera.position.z);
+  const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+  const visibleWidth = 2 * Math.tan(verticalFov / 2) * distance * aspect;
+  const targetViewportWidth = 0.74;
+
+  return THREE.MathUtils.clamp(
+    (visibleWidth * targetViewportWidth) / CUBE_SIZE,
+    0.56,
+    1,
+  );
+}
+
+function MobileMotionControl({
+  controls,
+}: {
+  controls: HeroInteractionControls;
+}) {
+  if (!controls.isMobileInput) {
+    return null;
+  }
+
+  const canRequestMotion = controls.motionStatus === "idle";
+  const statusText =
+    controls.motionStatus === "enabled"
+      ? "Motion enabled. Tilt your phone to move the ball."
+      : controls.motionStatus === "denied"
+        ? "Motion access denied. Gentle drift remains on."
+        : controls.motionStatus === "unsupported"
+          ? "Tilt control is not available on this device."
+          : 'Tap "Use Tilt" to enable motion control.';
+
+  return (
+    <Html fullscreen style={{ pointerEvents: "none" }}>
+      <div className="absolute inset-x-0 bottom-[5.8rem] z-20 flex justify-center px-6 sm:hidden">
+        <div className="pointer-events-auto flex max-w-[15rem] flex-col items-center gap-2 text-center">
+          {canRequestMotion && (
+            <button
+              type="button"
+              aria-label="Enable phone tilt control for the hero ball"
+              onClick={controls.requestMotionPermission}
+              className="rounded-full border border-black/[0.08] bg-white/[0.32] px-4 py-2 text-[9px] font-medium uppercase tracking-[0.22em] text-black/50 shadow-[0_10px_30px_rgba(60,60,55,0.045)] backdrop-blur-2xl transition-[transform,border-color,background-color,color] duration-500 ease-out hover:-translate-y-px hover:border-black/14 hover:bg-white/44 hover:text-black/68 active:translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-black/18 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f3f3ef]"
+            >
+              Use Tilt
+            </button>
+          )}
+          <p className="text-[8.5px] font-medium uppercase leading-relaxed tracking-[0.18em] text-black/30">
+            {statusText}
+          </p>
+        </div>
+      </div>
+    </Html>
+  );
 }
 
 function CoordinateDebugPanel({
