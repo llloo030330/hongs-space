@@ -125,6 +125,8 @@ function memorySequence(length: number) {
 }
 
 export function BrainGarden() {
+  const gamePanelRef = useRef<HTMLDivElement>(null);
+  const hasSelectedGameRef = useRef(false);
   const [activeGame, setActiveGame] = useState<GameId>("memory");
   const [stats, setStats] = useState<BrainStats>(initialStats);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -140,6 +142,22 @@ export function BrainGarden() {
 
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
   }, [isLoaded, stats]);
+
+  useEffect(() => {
+    if (!hasSelectedGameRef.current) {
+      hasSelectedGameRef.current = true;
+      return;
+    }
+
+    if (!window.matchMedia("(max-width: 639px)").matches) {
+      return;
+    }
+
+    gamePanelRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [activeGame]);
 
   const recordResult = useCallback(
     (game: GameId, value: number, label: string) => {
@@ -258,7 +276,10 @@ export function BrainGarden() {
             </p>
           </aside>
 
-          <div className="rounded-[18px] border border-black/[0.065] bg-white/[0.24] p-3.5 shadow-[0_12px_42px_rgba(36,36,30,0.045)] backdrop-blur-xl sm:rounded-[22px] sm:p-7 sm:shadow-[0_18px_70px_rgba(36,36,30,0.055)] lg:p-8">
+          <div
+            ref={gamePanelRef}
+            className="scroll-mt-4 rounded-[18px] border border-black/[0.065] bg-white/[0.24] p-3.5 shadow-[0_12px_42px_rgba(36,36,30,0.045)] backdrop-blur-xl sm:scroll-mt-8 sm:rounded-[22px] sm:p-7 sm:shadow-[0_18px_70px_rgba(36,36,30,0.055)] lg:p-8"
+          >
             {activeGame === "memory" ? (
               <MemoryPathGame onComplete={recordResult} />
             ) : null}
