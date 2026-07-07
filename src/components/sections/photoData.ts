@@ -1,5 +1,6 @@
 export type GalleryPhoto = {
   src: string;
+  thumbSrc?: string;
   alt: string;
   title: string;
   location: string;

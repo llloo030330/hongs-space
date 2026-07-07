@@ -1,8 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   formatPhotoMeta,
   type GalleryPhoto,
@@ -26,6 +25,15 @@ export function PhotoLightbox({
   const isOpen = activeIndex !== null && photos.length > 0;
   const activePhoto = isOpen ? photos[activeIndex] : null;
   const activeMeta = activePhoto ? formatPhotoMeta(activePhoto) : "";
+  const [imageStatus, setImageStatus] = useState<
+    "loading" | "loaded" | "error"
+  >("loading");
+
+  useEffect(() => {
+    if (!activePhoto) return;
+
+    setImageStatus("loading");
+  }, [activePhoto?.src]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -65,7 +73,7 @@ export function PhotoLightbox({
     <AnimatePresence>
       {activePhoto ? (
         <motion.div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-[#f5f5f2]/76 px-4 py-6 backdrop-blur-md sm:px-8"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[#f2f2ee]/82 px-3 py-5 backdrop-blur-md sm:px-8 sm:py-7"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -85,27 +93,51 @@ export function PhotoLightbox({
           </button>
 
           <motion.div
-            className="w-full max-w-6xl"
+            className="flex w-full flex-col items-center"
             initial={{ opacity: 0, scale: 0.985 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.985 }}
             transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="relative mx-auto flex max-h-[78vh] min-h-[280px] w-full max-w-[88vw] items-center justify-center overflow-hidden rounded-[20px] bg-white/45 shadow-[0_28px_100px_rgba(36,36,30,0.16)]">
-              <Image
-                key={activePhoto.src}
-                src={activePhoto.src}
-                alt={activePhoto.alt}
-                width={1600}
-                height={2000}
-                className="max-h-[78vh] max-w-[88vw] object-contain"
-                sizes="88vw"
-                priority
-              />
+            <div className="mx-auto flex w-full items-center justify-center">
+              <div className="relative flex min-h-48 min-w-48 items-center justify-center">
+                {imageStatus !== "error" ? (
+                  <img
+                    key={activePhoto.src}
+                    src={activePhoto.src}
+                    alt={activePhoto.alt}
+                    loading="eager"
+                    decoding="async"
+                    onLoad={() => setImageStatus("loaded")}
+                    onError={() => setImageStatus("error")}
+                    className={`block rounded-[18px] shadow-[0_30px_110px_rgba(36,36,30,0.18)] transition-opacity duration-300 ${
+                      imageStatus === "loaded" ? "opacity-100" : "opacity-0"
+                    }`}
+                    style={{
+                      maxWidth: "min(92vw, 1100px)",
+                      maxHeight: "84svh",
+                      width: "auto",
+                      height: "auto",
+                      objectFit: "contain",
+                    }}
+                  />
+                ) : null}
+
+                {imageStatus !== "loaded" ? (
+                  <p className="absolute inset-0 grid place-items-center rounded-[18px] border border-black/[0.055] bg-white/[0.2] px-8 text-center text-xs font-medium tracking-[0.14em] text-black/38 backdrop-blur-sm">
+                    {imageStatus === "error"
+                      ? "Image unavailable."
+                      : "Loading image..."}
+                  </p>
+                ) : null}
+              </div>
             </div>
 
-            <div className="mx-auto mt-6 flex max-w-[88vw] flex-col items-center gap-5 text-center sm:mt-7 sm:flex-row sm:justify-between sm:text-left">
+            <div
+              className="mx-auto mt-5 flex w-full flex-col items-center gap-4 text-center sm:mt-6 sm:flex-row sm:justify-between sm:text-left"
+              style={{ maxWidth: "min(94vw, 1180px)" }}
+            >
               <div>
                 <p className="text-sm font-medium tracking-[0.08em] text-black/66">
                   {activePhoto.title}

@@ -26,6 +26,41 @@ const stackTransition = {
 
 type StackDirection = "next" | "previous";
 
+function getPreviewSrc(photo: GalleryPhoto) {
+  return photo.thumbSrc ?? photo.src;
+}
+
+function StackPhotoImage({
+  photo,
+  loading = "lazy",
+}: {
+  photo: GalleryPhoto;
+  loading?: "eager" | "lazy";
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return (
+      <div className="flex h-full w-full items-center justify-center px-8 text-center text-xs font-medium tracking-[0.12em] text-black/32">
+        Image unavailable.
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={getPreviewSrc(photo)}
+      alt={photo.alt}
+      fill
+      sizes="(max-width: 640px) 82vw, 420px"
+      className="object-cover object-center"
+      loading={loading}
+      decoding="async"
+      onError={() => setHasError(true)}
+    />
+  );
+}
+
 function PhotoCaption({ photo }: { photo: GalleryPhoto }) {
   const meta = formatPhotoMeta(photo);
 
@@ -174,7 +209,7 @@ function PhotoStack() {
           return (
             <figure
               key={`${photo.src}-${styleIndex}`}
-              className="absolute inset-0 overflow-hidden rounded-[18px] border border-white/70 bg-white shadow-[0_24px_80px_rgba(36,36,30,0.13)] transition duration-500 ease-out"
+              className="absolute inset-0 overflow-hidden rounded-[18px] border border-white/65 bg-[#ecece7] shadow-[0_24px_80px_rgba(36,36,30,0.13)] transition duration-500 ease-out"
               style={{
                 zIndex: style.zIndex,
                 opacity: 1,
@@ -183,13 +218,9 @@ function PhotoStack() {
                   "transform 660ms cubic-bezier(0.22, 1, 0.36, 1), opacity 520ms cubic-bezier(0.22, 1, 0.36, 1)",
               }}
             >
-              <Image
-                src={photo.src}
-                alt={photo.alt}
-                fill
-                sizes="(max-width: 640px) 82vw, 420px"
-                className="object-cover"
-                priority={styleIndex === 0}
+              <StackPhotoImage
+                photo={photo}
+                loading={styleIndex === 0 ? "eager" : "lazy"}
               />
             </figure>
           );
@@ -198,7 +229,7 @@ function PhotoStack() {
         {incomingPhoto ? (
           <motion.figure
             key={`outgoing-${activePhoto.src}-${incomingIndex}`}
-            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[18px] border border-white/70 bg-white shadow-[0_24px_80px_rgba(36,36,30,0.13)]"
+            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[18px] border border-white/65 bg-[#ecece7] shadow-[0_24px_80px_rgba(36,36,30,0.13)]"
             style={{ zIndex: 55 }}
             initial={{
               y: stackStyles[0].y,
@@ -214,21 +245,14 @@ function PhotoStack() {
             }}
             transition={stackTransition}
           >
-            <Image
-              src={activePhoto.src}
-              alt={activePhoto.alt}
-              fill
-              sizes="(max-width: 640px) 82vw, 420px"
-              className="object-cover"
-              priority
-            />
+            <StackPhotoImage photo={activePhoto} loading="eager" />
           </motion.figure>
         ) : null}
 
         {incomingPhoto ? (
           <motion.figure
             key={`incoming-${direction}-${incomingPhoto.src}`}
-            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[18px] border border-white/75 bg-white shadow-[0_26px_86px_rgba(36,36,30,0.15)]"
+            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[18px] border border-white/70 bg-[#ecece7] shadow-[0_26px_86px_rgba(36,36,30,0.15)]"
             style={{ zIndex: 70 }}
             initial={{
               y: direction === "next" ? 96 : -72,
@@ -246,14 +270,7 @@ function PhotoStack() {
             transition={stackTransition}
             onAnimationComplete={completeTransition}
           >
-            <Image
-              src={incomingPhoto.src}
-              alt={incomingPhoto.alt}
-              fill
-              sizes="(max-width: 640px) 82vw, 420px"
-              className="object-cover"
-              priority
-            />
+            <StackPhotoImage photo={incomingPhoto} loading="eager" />
           </motion.figure>
         ) : null}
 

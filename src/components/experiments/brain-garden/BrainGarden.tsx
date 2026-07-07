@@ -149,7 +149,7 @@ export function BrainGarden() {
       return;
     }
 
-    if (!window.matchMedia("(max-width: 639px)").matches) {
+    if (!window.matchMedia("(max-width: 1023px)").matches) {
       return;
     }
 
