@@ -1,244 +1,155 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { BallCollider, RigidBody, type RapierRigidBody } from "@react-three/rapier";
+import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
-import { BALL_CENTER_Y, BALL_LIMIT, BALL_RADIUS, FLOOR_Y } from "./heroGeometry";
-import {
-  BOUNDARY_BOUNCE,
-  CENTER_BIAS,
-  DRAG_FORCE,
-  MAX_BALL_SPEED,
-  MAX_TILT_MAGNITUDE,
-  OFFSET_FORCE,
-  ROLLING_DAMPING,
-  SHADOW_OPACITY,
-  SHADOW_SIZE,
-  TILT_BOOST_POWER,
-  TILT_FORCE,
-} from "./heroTuning";
-import type { HeroInteractionRef } from "./useHeroInteraction";
+import { BALL_CENTER_Y, BALL_LIMIT, BALL_RADIUS } from "./heroGeometry";
 
 export type HeroBallDebugState = {
-  accelerationX: number;
-  accelerationZ: number;
-  velocityX: number;
-  velocityZ: number;
-  ballLocalX: number;
-  ballLocalZ: number;
-  limitX: number;
-  limitZ: number;
-  tiltMagnitude: number;
-  tiltBoost: number;
+  positionX: number;
+  positionY: number;
+  positionZ: number;
+  linvelX: number;
+  linvelY: number;
+  linvelZ: number;
+  angvelX: number;
+  angvelY: number;
+  angvelZ: number;
   speed: number;
   maxSpeed: number;
-  centerBias: number;
+  resetCount: number;
 };
 
 type HeroBallProps = {
-  interactionRef: HeroInteractionRef;
   onDebugUpdate?: (state: HeroBallDebugState) => void;
 };
 
-const limitX = BALL_LIMIT;
-const limitZ = BALL_LIMIT;
+const initialPosition = { x: 0, y: BALL_CENTER_Y + 0.012, z: 0 };
+const maxLinearSpeed = 2.65;
+const hardResetLimit = BALL_LIMIT + BALL_RADIUS + 0.58;
+const maxFallDistance = 4.5;
 
-function createSoftShadowTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 256;
-
-  const context = canvas.getContext("2d");
-
-  if (!context) {
-    return new THREE.Texture();
-  }
-
-  const gradient = context.createRadialGradient(128, 128, 8, 128, 128, 128);
-  gradient.addColorStop(0, "rgba(0,0,0,0.18)");
-  gradient.addColorStop(0.35, "rgba(0,0,0,0.09)");
-  gradient.addColorStop(1, "rgba(0,0,0,0)");
-
-  context.fillStyle = gradient;
-  context.fillRect(0, 0, 256, 256);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.needsUpdate = true;
-
-  return texture;
+function isFiniteVector(vector: { x: number; y: number; z: number }) {
+  return (
+    Number.isFinite(vector.x) &&
+    Number.isFinite(vector.y) &&
+    Number.isFinite(vector.z)
+  );
 }
 
-function finiteValue(value: number) {
-  return Number.isFinite(value) ? value : 0;
+function resetBall(body: RapierRigidBody) {
+  body.setTranslation(initialPosition, true);
+  body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
+  body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+  body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+  body.wakeUp();
 }
 
-function clamp(value: number, min: number, max: number) {
-  return THREE.MathUtils.clamp(finiteValue(value), min, max);
-}
+export default function HeroBall({ onDebugUpdate }: HeroBallProps) {
+  const bodyRef = useRef<RapierRigidBody>(null);
+  const resetCountRef = useRef(0);
+  const reportTimeRef = useRef(0);
 
-export default function HeroBall({
-  interactionRef,
-  onDebugUpdate,
-}: HeroBallProps) {
-  const ballGroupRef = useRef<THREE.Group>(null);
-  const ballVisualRef = useRef<THREE.Group>(null);
-  const shadowRef = useRef<THREE.Group>(null);
-  const softShadowTexture = useMemo(() => createSoftShadowTexture(), []);
-  const positionRef = useRef(new THREE.Vector3(0, BALL_CENTER_Y, 0));
-  const velocityRef = useRef(new THREE.Vector3(0, 0, 0));
-  const lastPositionRef = useRef(new THREE.Vector3(0, BALL_CENTER_Y, 0));
+  useEffect(() => {
+    const body = bodyRef.current;
 
-  useFrame((state, delta) => {
-    if (!ballGroupRef.current || !ballVisualRef.current) return;
+    if (body) {
+      resetBall(body);
+    }
+  }, []);
 
-    const dt = Math.min(delta, 0.033);
-    const t = state.clock.getElapsedTime();
-    const interaction = interactionRef.current;
-    const tiltMagnitude = Math.min(
-      Math.sqrt(
-        finiteValue(interaction.currentTiltX) *
-          finiteValue(interaction.currentTiltX) +
-          finiteValue(interaction.currentTiltZ) *
-            finiteValue(interaction.currentTiltZ),
-      ),
-      MAX_TILT_MAGNITUDE,
-    );
-    const tiltBoost = 1 + tiltMagnitude * TILT_BOOST_POWER;
-    const tiltDirectionX = -Math.sin(finiteValue(interaction.currentTiltZ));
-    const tiltDirectionZ = Math.sin(finiteValue(interaction.currentTiltX));
-    const accelerationX =
-      tiltDirectionX * TILT_FORCE * tiltBoost -
-      finiteValue(interaction.dragVelocityX) * DRAG_FORCE -
-      finiteValue(interaction.currentOffsetX) * OFFSET_FORCE -
-      positionRef.current.x * CENTER_BIAS;
-    const accelerationZ =
-      tiltDirectionZ * TILT_FORCE * tiltBoost +
-      finiteValue(interaction.dragVelocityY) * DRAG_FORCE +
-      finiteValue(interaction.currentOffsetY) * OFFSET_FORCE -
-      positionRef.current.z * CENTER_BIAS;
+  useFrame((_, delta) => {
+    const body = bodyRef.current;
 
-    velocityRef.current.x += accelerationX * dt;
-    velocityRef.current.z += accelerationZ * dt;
-    velocityRef.current.x *= Math.pow(ROLLING_DAMPING, dt * 60);
-    velocityRef.current.z *= Math.pow(ROLLING_DAMPING, dt * 60);
+    if (!body) return;
 
-    const horizontalSpeed = Math.hypot(
-      velocityRef.current.x,
-      velocityRef.current.z,
-    );
+    const translation = body.translation();
+    const linvel = body.linvel();
+    const angvel = body.angvel();
+    const speed = Math.hypot(linvel.x, linvel.y, linvel.z);
+    const isInvalid =
+      !isFiniteVector(translation) ||
+      !isFiniteVector(linvel) ||
+      !isFiniteVector(angvel) ||
+      Math.abs(translation.x) > hardResetLimit ||
+      Math.abs(translation.z) > hardResetLimit ||
+      Math.abs(translation.y) > maxFallDistance;
 
-    if (horizontalSpeed > MAX_BALL_SPEED) {
-      const scale = MAX_BALL_SPEED / horizontalSpeed;
-      velocityRef.current.x *= scale;
-      velocityRef.current.z *= scale;
+    if (isInvalid) {
+      resetCountRef.current += 1;
+      resetBall(body);
+      return;
     }
 
-    positionRef.current.x += velocityRef.current.x * dt;
-    positionRef.current.z += velocityRef.current.z * dt;
-    positionRef.current.y = BALL_CENTER_Y;
-
-    if (!Number.isFinite(positionRef.current.x)) {
-      positionRef.current.x = 0;
-      velocityRef.current.x = 0;
-    }
-
-    if (!Number.isFinite(positionRef.current.z)) {
-      positionRef.current.z = 0;
-      velocityRef.current.z = 0;
-    }
-
-    if (positionRef.current.x > limitX) {
-      positionRef.current.x = limitX;
-      velocityRef.current.x *= BOUNDARY_BOUNCE;
-    } else if (positionRef.current.x < -limitX) {
-      positionRef.current.x = -limitX;
-      velocityRef.current.x *= BOUNDARY_BOUNCE;
-    }
-
-    if (positionRef.current.z > limitZ) {
-      positionRef.current.z = limitZ;
-      velocityRef.current.z *= BOUNDARY_BOUNCE;
-    } else if (positionRef.current.z < -limitZ) {
-      positionRef.current.z = -limitZ;
-      velocityRef.current.z *= BOUNDARY_BOUNCE;
-    }
-
-    const deltaX = positionRef.current.x - lastPositionRef.current.x;
-    const deltaZ = positionRef.current.z - lastPositionRef.current.z;
-
-    ballGroupRef.current.position.copy(positionRef.current);
-    ballVisualRef.current.rotation.z -= deltaX / BALL_RADIUS;
-    ballVisualRef.current.rotation.x += deltaZ / BALL_RADIUS;
-
-    const breathe = 1 + Math.sin(t * 1.4) * 0.006;
-    const activeScale =
-      1 + clamp(interaction.disturbanceStrength, 0, 1) * 0.012;
-    const s = Math.min(breathe * activeScale, 1.018);
-    ballVisualRef.current.scale.set(s, s, s);
-    lastPositionRef.current.copy(positionRef.current);
-
-    if (shadowRef.current) {
-      shadowRef.current.position.set(
-        positionRef.current.x,
-        FLOOR_Y + 0.004,
-        positionRef.current.z,
+    if (speed > maxLinearSpeed) {
+      const scale = maxLinearSpeed / speed;
+      body.setLinvel(
+        {
+          x: linvel.x * scale,
+          y: linvel.y * scale,
+          z: linvel.z * scale,
+        },
+        true,
       );
     }
 
-    onDebugUpdate?.({
-      accelerationX,
-      accelerationZ,
-      velocityX: velocityRef.current.x,
-      velocityZ: velocityRef.current.z,
-      ballLocalX: positionRef.current.x,
-      ballLocalZ: positionRef.current.z,
-      limitX,
-      limitZ,
-      tiltMagnitude,
-      tiltBoost,
-      speed: Math.hypot(velocityRef.current.x, velocityRef.current.z),
-      maxSpeed: MAX_BALL_SPEED,
-      centerBias: CENTER_BIAS,
-    });
+    body.wakeUp();
+    reportTimeRef.current += Math.min(delta, 1 / 30);
+
+    if (reportTimeRef.current >= 0.12) {
+      onDebugUpdate?.({
+        positionX: translation.x,
+        positionY: translation.y,
+        positionZ: translation.z,
+        linvelX: linvel.x,
+        linvelY: linvel.y,
+        linvelZ: linvel.z,
+        angvelX: angvel.x,
+        angvelY: angvel.y,
+        angvelZ: angvel.z,
+        speed,
+        maxSpeed: maxLinearSpeed,
+        resetCount: resetCountRef.current,
+      });
+      reportTimeRef.current = 0;
+    }
   });
 
   return (
-    <>
-      <group ref={ballGroupRef} position={[0, BALL_CENTER_Y, 0]}>
-        <group ref={ballVisualRef}>
-          <mesh renderOrder={2}>
-            <sphereGeometry args={[BALL_RADIUS, 96, 96]} />
-            <meshPhysicalMaterial
-              color="#101010"
-              roughness={0.66}
-              metalness={0}
-              clearcoat={0.14}
-              clearcoatRoughness={0.62}
-              transparent={false}
-              opacity={1}
-              depthWrite
-              depthTest
-              emissive="#030303"
-              emissiveIntensity={0.018}
-            />
-          </mesh>
-        </group>
-      </group>
-
-      <group
-        ref={shadowRef}
-        position={[0, FLOOR_Y + 0.004, 0]}
-      >
-        <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={0}>
-          <planeGeometry args={[SHADOW_SIZE, SHADOW_SIZE]} />
-          <meshBasicMaterial
-            map={softShadowTexture}
-            transparent
-            opacity={SHADOW_OPACITY}
-            depthWrite={false}
-          />
-        </mesh>
-      </group>
-    </>
+    <RigidBody
+      ref={bodyRef}
+      colliders={false}
+      position={[initialPosition.x, initialPosition.y, initialPosition.z]}
+      ccd
+      canSleep={false}
+      mass={0.48}
+      friction={0.78}
+      restitution={0.055}
+      linearDamping={0.18}
+      angularDamping={0.24}
+      gravityScale={1}
+    >
+      <BallCollider
+        args={[BALL_RADIUS]}
+        friction={0.82}
+        restitution={0.055}
+      />
+      <mesh castShadow renderOrder={2}>
+        <sphereGeometry args={[BALL_RADIUS, 96, 96]} />
+        <meshPhysicalMaterial
+          color="#111111"
+          roughness={0.58}
+          metalness={0.02}
+          clearcoat={0.12}
+          clearcoatRoughness={0.58}
+          transparent={false}
+          opacity={1}
+          depthWrite
+          depthTest
+          emissive="#020202"
+          emissiveIntensity={0.012}
+        />
+      </mesh>
+    </RigidBody>
   );
 }

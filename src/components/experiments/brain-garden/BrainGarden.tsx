@@ -35,25 +35,25 @@ const games: Array<{
   {
     id: "memory",
     title: "Memory Path",
-    description: "Watch a quiet sequence, then repeat the path in order.",
+    description: "Watch a short sequence, then repeat it.",
     tags: ["Memory"],
   },
   {
     id: "stroop",
     title: "Stroop Focus",
-    description: "Choose the ink color, not the word content.",
+    description: "Choose the text color, not the word.",
     tags: ["Focus"],
   },
   {
     id: "schulte",
     title: "Schulte Grid",
-    description: "Find numbers in order with steady visual attention.",
+    description: "Find numbers in order.",
     tags: ["Attention"],
   },
   {
     id: "rps",
     title: "RPS Logic",
-    description: "Choose the move that creates the requested outcome.",
+    description: "Choose the move that matches the goal.",
     tags: ["Logic", "Reaction", "Rule Switching"],
   },
 ];
@@ -130,7 +130,7 @@ export function BrainGarden() {
   const [activeGame, setActiveGame] = useState<GameId>("memory");
   const [stats, setStats] = useState<BrainStats>(initialStats);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [latestResult, setLatestResult] = useState("Start a short session.");
+  const [latestResult, setLatestResult] = useState("Choose a short practice.");
 
   useEffect(() => {
     setStats(safeJsonParse(window.localStorage.getItem(STORAGE_KEY)));
@@ -196,8 +196,8 @@ export function BrainGarden() {
               Brain Garden
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-black/52 sm:mt-6 sm:text-lg sm:leading-9">
-              A small daily experiment for focus, memory, and attention. It is
-              a mental warm-up, not a medical tool.
+              A small daily experiment for focus, memory, attention, and rule
+              switching.
             </p>
           </div>
 
@@ -210,10 +210,10 @@ export function BrainGarden() {
         </header>
 
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-          <Metric label="Memory best" value={`${stats.bestMemoryScore}`} />
-          <Metric label="Stroop best" value={`${stats.bestStroopScore}`} />
+          <Metric label="Memory record" value={`${stats.bestMemoryScore}`} />
+          <Metric label="Stroop record" value={`${stats.bestStroopScore}`} />
           <Metric
-            label="Schulte best"
+            label="Schulte time"
             value={
               stats.bestSchulteTime === null
                 ? "--"
@@ -391,7 +391,7 @@ function MemoryPathGame({
     setFeedbackTile(null);
     setAccepting(false);
     setIsShowing(true);
-    setStatus("Watch the path");
+    setStatus("Watch the path.");
     await wait(420);
 
     for (const cell of nextSequence) {
@@ -405,7 +405,7 @@ function MemoryPathGame({
 
     if (runIdRef.current !== runId) return;
 
-    setStatus("Repeat the path");
+    setStatus("Repeat the path.");
     setAccepting(true);
     setIsShowing(false);
   }, [clearFeedbackTimers, isShowing, level]);
@@ -453,8 +453,8 @@ function MemoryPathGame({
         showResultFeedback(cell, "wrong");
         setAccepting(false);
         setIsShowing(false);
-        setStatus("Try again. Score recorded.");
-        onComplete("memory", score, `Memory Path recorded ${score} points.`);
+        setStatus("Try again.");
+        onComplete("memory", score, `Memory Path ended with ${score} points.`);
         return;
       }
 
@@ -469,11 +469,11 @@ function MemoryPathGame({
         setAccepting(false);
 
         if (nextLevel > 5) {
-          setStatus("Complete. Score recorded.");
+          setStatus("Complete.");
           onComplete(
             "memory",
             nextScore,
-            `Memory Path completed with ${nextScore} points.`,
+            `Memory Path finished with ${nextScore} points.`,
           );
           return;
         }
@@ -525,7 +525,7 @@ function MemoryPathGame({
     <section>
       <GameHeader
         title="Memory Path"
-        description="Watch a sequence of quiet cells. Repeat it in order after the lights stop."
+        description="Watch a short sequence. Repeat it after the lights stop."
       />
 
       <div className="mb-3 flex items-center justify-between gap-3 text-[11px] text-black/38 sm:mb-4 sm:text-xs">
@@ -693,7 +693,7 @@ function StroopFocusGame({
     setResult(null);
     setSelectedAnswer(null);
     setIsResolving(false);
-    setStatus("Choose the text color");
+    setStatus("Choose the text color.");
     nextQuestion();
   }, [nextQuestion]);
 
@@ -707,7 +707,7 @@ function StroopFocusGame({
       setScore(nextScore);
       setSelectedAnswer(colorName);
       setResult(isCorrect ? "correct" : "wrong");
-      setStatus(isCorrect ? "Correct" : "Wrong");
+      setStatus(isCorrect ? "Correct." : "Try again.");
       setIsResolving(true);
       if (resultTimeoutRef.current !== null) {
         window.clearTimeout(resultTimeoutRef.current);
@@ -721,19 +721,17 @@ function StroopFocusGame({
         if (nextRound > 8) {
           setActive(false);
           setRound(8);
-          setStatus(
-            isCorrect ? "Correct. Score recorded." : "Wrong. Score recorded.",
-          );
+          setStatus("Complete.");
           onComplete(
             "stroop",
             nextScore,
-            `Stroop Focus completed with ${nextScore} / 8 correct.`,
+            `Stroop Focus finished with ${nextScore} / 8 correct.`,
           );
           return;
         }
 
         setRound(nextRound);
-        setStatus("Choose the text color");
+        setStatus("Choose the text color.");
         nextQuestion();
       }, isCorrect ? 480 : 720);
     },
@@ -894,11 +892,11 @@ function SchulteGridGame({
         timerRef.current = null;
         setActive(false);
         setElapsed(finalTime);
-        setStatus("Complete. Time recorded.");
+        setStatus("Complete.");
         onComplete(
           "schulte",
           finalTime,
-          `Schulte Grid completed in ${finalTime.toFixed(1)}s with ${errors} errors.`,
+          `Schulte Grid finished in ${finalTime.toFixed(1)}s with ${errors} errors.`,
         );
         return;
       }

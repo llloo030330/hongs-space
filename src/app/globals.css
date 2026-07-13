@@ -12,10 +12,12 @@
 html,
 body {
   min-height: 100%;
+  overflow-x: clip;
 }
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
 }
 
 body {
@@ -30,5 +32,43 @@ body {
 
 button,
 a {
-  font: inherit;
+  font-family: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgba(21, 21, 21, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .hero-title {
+    font-size: clamp(1.85rem, 6vw, 2.75rem);
+  }
+
+  .hero-subtitle {
+    top: calc(50% + 3.2rem);
+    max-width: 28rem;
+    font-size: 8.5px;
+    line-height: 1.55;
+  }
+
+  .hero-enter {
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
 }

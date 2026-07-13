@@ -73,7 +73,7 @@ export function PhotoLightbox({
     <AnimatePresence>
       {activePhoto ? (
         <motion.div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-[#f2f2ee]/82 px-3 py-5 backdrop-blur-md sm:px-8 sm:py-7"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[#f2f2ee]/82 px-3 py-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:px-8 sm:py-7"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -87,13 +87,13 @@ export function PhotoLightbox({
             type="button"
             onClick={onClose}
             aria-label="Close photo viewer"
-            className="absolute right-4 top-4 min-h-11 rounded-full border border-black/[0.08] bg-white/40 px-5 text-xs tracking-[0.16em] text-black/48 shadow-[0_12px_40px_rgba(36,36,30,0.08)] backdrop-blur-xl transition duration-300 hover:border-black/[0.14] hover:text-black/68 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/16 sm:right-8 sm:top-8"
+            className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] min-h-11 rounded-full border border-black/[0.08] bg-white/40 px-4 text-xs tracking-[0.13em] text-black/48 shadow-[0_12px_40px_rgba(36,36,30,0.08)] backdrop-blur-xl transition duration-300 hover:border-black/[0.14] hover:text-black/68 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/16 sm:right-8 sm:top-8 sm:px-5 sm:tracking-[0.16em]"
           >
             Close
           </button>
 
           <motion.div
-            className="flex w-full flex-col items-center"
+            className="flex w-full flex-col items-center pt-10 sm:pt-0"
             initial={{ opacity: 0, scale: 0.985 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.985 }}
@@ -115,8 +115,8 @@ export function PhotoLightbox({
                       imageStatus === "loaded" ? "opacity-100" : "opacity-0"
                     }`}
                     style={{
-                      maxWidth: "min(92vw, 1100px)",
-                      maxHeight: "84svh",
+                      maxWidth: "calc(100vw - 24px)",
+                      maxHeight: "min(84svh, calc(100svh - 10.5rem))",
                       width: "auto",
                       height: "auto",
                       objectFit: "contain",
@@ -135,7 +135,7 @@ export function PhotoLightbox({
             </div>
 
             <div
-              className="mx-auto mt-5 flex w-full flex-col items-center gap-4 text-center sm:mt-6 sm:flex-row sm:justify-between sm:text-left"
+              className="mx-auto mt-4 flex w-full flex-col items-center gap-3 text-center sm:mt-6 sm:flex-row sm:justify-between sm:text-left"
               style={{ maxWidth: "min(94vw, 1180px)" }}
             >
               <div>
@@ -150,12 +150,12 @@ export function PhotoLightbox({
               </div>
 
               {photos.length > 1 ? (
-                <div className="flex items-center gap-3">
+                <div className="grid w-full max-w-xs grid-cols-2 gap-3 sm:flex sm:w-auto sm:max-w-none sm:items-center">
                   <button
                     type="button"
                     onClick={onPrevious}
                     aria-label="Show previous photo"
-                    className="min-h-11 rounded-full border border-black/[0.08] bg-white/35 px-5 text-xs tracking-[0.16em] text-black/46 backdrop-blur-xl transition duration-300 hover:border-black/[0.14] hover:text-black/64 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/16"
+                    className="min-h-11 rounded-full border border-black/[0.08] bg-white/35 px-3 text-xs tracking-[0.11em] text-black/46 backdrop-blur-xl transition duration-300 hover:border-black/[0.14] hover:text-black/64 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/16 sm:px-5 sm:tracking-[0.16em]"
                   >
                     Previous
                   </button>
@@ -163,7 +163,7 @@ export function PhotoLightbox({
                     type="button"
                     onClick={onNext}
                     aria-label="Show next photo"
-                    className="min-h-11 rounded-full border border-black/[0.08] bg-white/35 px-5 text-xs tracking-[0.16em] text-black/46 backdrop-blur-xl transition duration-300 hover:border-black/[0.14] hover:text-black/64 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/16"
+                    className="min-h-11 rounded-full border border-black/[0.08] bg-white/35 px-3 text-xs tracking-[0.11em] text-black/46 backdrop-blur-xl transition duration-300 hover:border-black/[0.14] hover:text-black/64 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/16 sm:px-5 sm:tracking-[0.16em]"
                   >
                     Next
                   </button>

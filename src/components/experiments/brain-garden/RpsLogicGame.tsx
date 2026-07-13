@@ -117,7 +117,7 @@ export function RpsLogicGame({
     setRound(1);
     setScore(0);
     setQuestion(createQuestion());
-    setStatus("Choose the move for the target outcome.");
+    setStatus("Match the goal.");
   }, [clearFeedback]);
 
   const answer = useCallback(
@@ -131,7 +131,7 @@ export function RpsLogicGame({
       setSelectedMove(move);
       setResult(isCorrect ? "correct" : "wrong");
       setScore(nextScore);
-      setStatus(isCorrect ? "Correct" : "Try again");
+      setStatus(isCorrect ? "Correct." : "Try again.");
 
       feedbackTimeoutRef.current = window.setTimeout(
         () => {
@@ -142,17 +142,17 @@ export function RpsLogicGame({
           if (nextRound > 8) {
             setActive(false);
             setRound(8);
-            setStatus("Complete. Score recorded.");
+            setStatus("Complete.");
             onComplete(
               nextScore,
-              `RPS Logic completed with ${nextScore} / 8 correct.`,
+              `RPS Logic finished with ${nextScore} / 8 correct.`,
             );
             return;
           }
 
           setRound(nextRound);
           setQuestion(createQuestion());
-          setStatus("Choose the move for the target outcome.");
+          setStatus("Match the goal.");
         },
         isCorrect ? 480 : 720,
       );
@@ -179,7 +179,7 @@ export function RpsLogicGame({
         <p className="mt-2 text-xs leading-5 text-black/48 sm:mt-4 sm:max-w-2xl sm:text-sm sm:leading-7">
           <span className="sm:hidden">Match the goal.</span>
           <span className="hidden sm:inline">
-            Choose the move that matches the target outcome.
+            Choose the move that matches the goal.
           </span>
         </p>
       </div>

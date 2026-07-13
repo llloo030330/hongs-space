@@ -2,41 +2,49 @@
 
 import { Html } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useRef, type MutableRefObject, type ReactNode } from "react";
+import {
+  CuboidCollider,
+  Physics,
+  RigidBody,
+  type RapierRigidBody,
+} from "@react-three/rapier";
+import {
+  Component,
+  Suspense,
+  useRef,
+  type ErrorInfo,
+  type MutableRefObject,
+  type ReactNode,
+} from "react";
 import * as THREE from "three";
 import GlassCube from "./GlassCube";
 import HeroBall, { type HeroBallDebugState } from "./HeroBall";
 import {
-  BALL_CENTER_Y,
-  BALL_LIMIT,
+  BALL_RADIUS,
   CUBE_SIZE,
   FLOOR_Y,
 } from "./heroGeometry";
 import {
-  CENTER_BIAS,
-  MAX_BALL_SPEED,
   SHOW_DEBUG,
 } from "./heroTuning";
 import {
   useHeroInteraction,
-  type HeroInteractionControls,
   type HeroInteractionRef,
 } from "./useHeroInteraction";
 
 const defaultHeroBallDebugState: HeroBallDebugState = {
-  accelerationX: 0,
-  accelerationZ: 0,
-  velocityX: 0,
-  velocityZ: 0,
-  ballLocalX: 0,
-  ballLocalZ: 0,
-  limitX: BALL_LIMIT,
-  limitZ: BALL_LIMIT,
-  tiltMagnitude: 0,
-  tiltBoost: 1,
+  positionX: 0,
+  positionY: 0,
+  positionZ: 0,
+  linvelX: 0,
+  linvelY: 0,
+  linvelZ: 0,
+  angvelX: 0,
+  angvelY: 0,
+  angvelZ: 0,
   speed: 0,
-  maxSpeed: MAX_BALL_SPEED,
-  centerBias: CENTER_BIAS,
+  maxSpeed: 2.65,
+  resetCount: 0,
 };
 
 function fmt(value: unknown, digits = 3) {
@@ -53,164 +61,263 @@ export default function HeroCanvas() {
         style={{ height: "100%", width: "100%" }}
         camera={{ position: [0, 0.15, 6.2], fov: 38 }}
         dpr={[1, 2]}
+        gl={{
+          antialias: true,
+          alpha: true,
+          preserveDrawingBuffer: false,
+          powerPreference: "high-performance",
+        }}
         shadows
       >
         <color attach="background" args={["#f4f4f0"]} />
         <fog attach="fog" args={["#f4f4f0", 7.2, 13]} />
-        <ambientLight intensity={1.12} />
-        <directionalLight position={[4, 5, 5]} intensity={1.85} color="#ffffff" />
-        <directionalLight position={[-4, 2.4, -3]} intensity={0.28} color="#f2f2ec" />
-        <pointLight position={[-3.5, 2.5, 4]} intensity={0.52} color="#d8d8d2" />
-        <HeroWorld />
+        <ambientLight intensity={0.96} />
+        <directionalLight position={[4, 5, 5]} intensity={1.62} color="#ffffff" />
+        <directionalLight position={[-4, 2.4, -3]} intensity={0.42} color="#f3f3ee" />
+        <directionalLight position={[0, 3, -5]} intensity={0.2} color="#f8f8f2" />
+        <pointLight position={[-3.5, 2.5, 4]} intensity={0.34} color="#deded8" />
+        <HeroCanvasBoundary>
+          <HeroWorld />
+        </HeroCanvasBoundary>
       </Canvas>
     </div>
   );
 }
 
+class HeroCanvasBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown, errorInfo: ErrorInfo) {
+    console.error("Hero 3D scene failed.", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <SafeHeroFallback />;
+    }
+
+    return this.props.children;
+  }
+}
+
 function HeroWorld() {
-  const interactionControls = useHeroInteraction();
-  const { interactionRef } = interactionControls;
+  const { interactionRef } = useHeroInteraction();
   const debugStateRef = useRef<HeroBallDebugState>({
     ...defaultHeroBallDebugState,
   });
 
   return (
     <>
-      <CubeWorldGroup interactionRef={interactionRef}>
-        <GlassCube />
-        <HeroBall
-          interactionRef={interactionRef}
-          onDebugUpdate={(state) => {
-            debugStateRef.current = state;
-          }}
-        />
-        {SHOW_DEBUG && <FloorDebugPlane />}
-      </CubeWorldGroup>
+      <ResponsiveCameraFraming />
+      <Suspense fallback={<SafeHeroFallback />}>
+        <Physics gravity={[0, -9.81, 0]} timeStep="vary">
+          <KinematicCubeBody interactionRef={interactionRef}>
+            <GlassCube />
+            <InteriorShadowReceiver />
+            {SHOW_DEBUG && <FloorDebugPlane />}
+          </KinematicCubeBody>
+          <HeroBall
+            onDebugUpdate={(state) => {
+              debugStateRef.current = state;
+            }}
+          />
+        </Physics>
+      </Suspense>
       {SHOW_DEBUG && (
         <CoordinateDebugPanel
           interactionRef={interactionRef}
           debugStateRef={debugStateRef}
         />
       )}
-      <MobileMotionControl controls={interactionControls} />
     </>
   );
 }
 
-function CubeWorldGroup({
+function finite(value: number, fallback = 0) {
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function isFiniteQuaternion(quaternion: THREE.Quaternion) {
+  return (
+    Number.isFinite(quaternion.x) &&
+    Number.isFinite(quaternion.y) &&
+    Number.isFinite(quaternion.z) &&
+    Number.isFinite(quaternion.w)
+  );
+}
+
+function SafeHeroFallback() {
+  return (
+    <group>
+      <GlassCube />
+      <InteriorShadowReceiver />
+      <mesh position={[0, -0.96, 0]} castShadow>
+        <sphereGeometry args={[BALL_RADIUS, 64, 64]} />
+        <meshStandardMaterial
+          color="#111111"
+          roughness={0.58}
+          metalness={0.02}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+function KinematicCubeBody({
   interactionRef,
   children,
 }: {
   interactionRef: HeroInteractionRef;
   children: ReactNode;
 }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const { camera, size } = useThree();
+  const cubeBodyRef = useRef<RapierRigidBody>(null);
+  const quaternionRef = useRef(new THREE.Quaternion());
+  const eulerRef = useRef(new THREE.Euler(0, 0, 0, "XYZ"));
+  const hasWarnedInvalidTransformRef = useRef(false);
+  const half = CUBE_SIZE / 2;
+  const wallThickness = 0.06;
 
   useFrame((_, delta) => {
-    const group = groupRef.current;
+    const body = cubeBodyRef.current;
 
-    if (!group) {
+    if (!body) {
       return;
     }
 
     const interaction = interactionRef.current;
-    const frameDelta = Math.min(delta, 1 / 30);
-    const targetScale = getResponsiveCubeScale(size.width, size.height, camera);
+    const maxTiltX = THREE.MathUtils.degToRad(8);
+    const maxTiltZ = THREE.MathUtils.degToRad(5);
+    const tiltX = THREE.MathUtils.clamp(
+      finite(interaction.currentTiltX),
+      -maxTiltX,
+      maxTiltX,
+    );
+    const tiltZ = THREE.MathUtils.clamp(
+      finite(interaction.currentTiltZ),
+      -maxTiltZ,
+      maxTiltZ,
+    );
+    const translation = body.translation();
 
-    group.scale.setScalar(
-      THREE.MathUtils.damp(group.scale.x, targetScale, 7.5, frameDelta),
-    );
-    group.position.x = THREE.MathUtils.damp(
-      group.position.x,
-      interaction.currentOffsetX * 0.2,
-      8,
-      frameDelta,
-    );
-    group.position.y = THREE.MathUtils.damp(
-      group.position.y,
-      interaction.currentOffsetY * 0.12,
-      8,
-      frameDelta,
-    );
-    group.rotation.x = THREE.MathUtils.damp(
-      group.rotation.x,
-      interaction.currentTiltX,
-      9,
-      frameDelta,
-    );
-    group.rotation.z = THREE.MathUtils.damp(
-      group.rotation.z,
-      interaction.currentTiltZ,
-      9,
-      frameDelta,
-    );
+    eulerRef.current.set(tiltX, 0, tiltZ);
+    quaternionRef.current.setFromEuler(eulerRef.current);
+    quaternionRef.current.normalize();
+
+    if (!isFiniteQuaternion(quaternionRef.current)) {
+      quaternionRef.current.identity();
+    }
+
+    if (
+      !Number.isFinite(translation.x) ||
+      !Number.isFinite(translation.y) ||
+      !Number.isFinite(translation.z) ||
+      Math.abs(translation.x) > 10 ||
+      Math.abs(translation.y) > 10 ||
+      Math.abs(translation.z) > 10
+    ) {
+      body.setTranslation({ x: 0, y: 0, z: 0 }, true);
+      body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+
+      if (!hasWarnedInvalidTransformRef.current) {
+        console.warn("Hero cube transform reset because it became invalid.");
+        hasWarnedInvalidTransformRef.current = true;
+      }
+
+      return;
+    }
+
+    body.setNextKinematicRotation({
+      x: quaternionRef.current.x,
+      y: quaternionRef.current.y,
+      z: quaternionRef.current.z,
+      w: quaternionRef.current.w,
+    });
+    body.setNextKinematicTranslation({ x: 0, y: 0, z: 0 });
   });
 
-  return <group ref={groupRef}>{children}</group>;
-}
-
-function getResponsiveCubeScale(
-  width: number,
-  height: number,
-  camera: THREE.Camera,
-) {
-  if (width >= 640 || height <= 0 || !(camera instanceof THREE.PerspectiveCamera)) {
-    return 1;
-  }
-
-  const aspect = width / height;
-  const distance = Math.abs(camera.position.z);
-  const verticalFov = THREE.MathUtils.degToRad(camera.fov);
-  const visibleWidth = 2 * Math.tan(verticalFov / 2) * distance * aspect;
-  const targetViewportWidth = 0.74;
-
-  return THREE.MathUtils.clamp(
-    (visibleWidth * targetViewportWidth) / CUBE_SIZE,
-    0.56,
-    1,
+  return (
+    <RigidBody
+      ref={cubeBodyRef}
+      type="kinematicPosition"
+      colliders={false}
+      position={[0, 0, 0]}
+    >
+      <CuboidCollider
+        args={[half, wallThickness, half]}
+        position={[0, -half - wallThickness, 0]}
+        friction={0.86}
+        restitution={0.04}
+      />
+      <CuboidCollider
+        args={[half, wallThickness, half]}
+        position={[0, half + wallThickness, 0]}
+        friction={0.72}
+        restitution={0.02}
+      />
+      <CuboidCollider
+        args={[wallThickness, half, half]}
+        position={[-half - wallThickness, 0, 0]}
+        friction={0.72}
+        restitution={0.04}
+      />
+      <CuboidCollider
+        args={[wallThickness, half, half]}
+        position={[half + wallThickness, 0, 0]}
+        friction={0.72}
+        restitution={0.04}
+      />
+      <CuboidCollider
+        args={[half, half, wallThickness]}
+        position={[0, 0, half + wallThickness]}
+        friction={0.72}
+        restitution={0.04}
+      />
+      <CuboidCollider
+        args={[half, half, wallThickness]}
+        position={[0, 0, -half - wallThickness]}
+        friction={0.72}
+        restitution={0.04}
+      />
+      {children}
+    </RigidBody>
   );
 }
 
-function MobileMotionControl({
-  controls,
-}: {
-  controls: HeroInteractionControls;
-}) {
-  if (!controls.isMobileInput) {
-    return null;
-  }
+function ResponsiveCameraFraming() {
+  const { camera, size } = useThree();
 
-  const canRequestMotion = controls.motionStatus === "idle";
-  const statusText =
-    controls.motionStatus === "enabled"
-      ? "Motion enabled. Tilt your phone to move the ball."
-      : controls.motionStatus === "denied"
-        ? "Motion access denied. Gentle drift remains on."
-        : controls.motionStatus === "unsupported"
-          ? "Tilt control is not available on this device."
-          : 'Tap "Use Tilt" to enable motion control.';
+  useFrame((_, delta) => {
+    if (!(camera instanceof THREE.PerspectiveCamera)) return;
 
+    const frameDelta = Math.min(delta, 1 / 30);
+    const viewportWidth = finite(size.width, 1024);
+    const isMobile = viewportWidth < 768;
+    const isShortLandscape = isMobile && viewportWidth > finite(size.height, 800);
+    const targetZ = isMobile ? (isShortLandscape ? 11.2 : 11) : 6.2;
+    const targetFov = isMobile ? 38 : 38;
+
+    camera.position.z = THREE.MathUtils.damp(camera.position.z, targetZ, 5.5, frameDelta);
+    camera.fov = THREE.MathUtils.damp(camera.fov, targetFov, 5.5, frameDelta);
+    camera.updateProjectionMatrix();
+  });
+
+  return null;
+}
+
+function InteriorShadowReceiver() {
   return (
-    <Html fullscreen style={{ pointerEvents: "none" }}>
-      <div className="absolute inset-x-0 bottom-[5.8rem] z-20 flex justify-center px-6 sm:hidden">
-        <div className="pointer-events-auto flex max-w-[15rem] flex-col items-center gap-2 text-center">
-          {canRequestMotion && (
-            <button
-              type="button"
-              aria-label="Enable phone tilt control for the hero ball"
-              onClick={controls.requestMotionPermission}
-              className="rounded-full border border-black/[0.08] bg-white/[0.32] px-4 py-2 text-[9px] font-medium uppercase tracking-[0.22em] text-black/50 shadow-[0_10px_30px_rgba(60,60,55,0.045)] backdrop-blur-2xl transition-[transform,border-color,background-color,color] duration-500 ease-out hover:-translate-y-px hover:border-black/14 hover:bg-white/44 hover:text-black/68 active:translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-black/18 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f3f3ef]"
-            >
-              Use Tilt
-            </button>
-          )}
-          <p className="text-[8.5px] font-medium uppercase leading-relaxed tracking-[0.18em] text-black/30">
-            {statusText}
-          </p>
-        </div>
-      </div>
-    </Html>
+    <mesh position={[0, FLOOR_Y + 0.003, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <planeGeometry args={[CUBE_SIZE * 0.7, CUBE_SIZE * 0.7]} />
+      <shadowMaterial transparent opacity={0.09} depthWrite={false} />
+    </mesh>
   );
 }
 
@@ -236,17 +343,15 @@ function CoordinateDebugPanel({
     panelRef.current.innerText = [
       `tiltX ${fmt(interaction.currentTiltX)}`,
       `tiltZ ${fmt(interaction.currentTiltZ)}`,
-      `accel ${fmt(debugState.accelerationX)}, ${fmt(debugState.accelerationZ)}`,
-      `vel ${fmt(debugState.velocityX)}, ${fmt(debugState.velocityZ)}`,
+      `pos ${fmt(debugState.positionX)}, ${fmt(debugState.positionY)}, ${fmt(debugState.positionZ)}`,
+      `linvel ${fmt(debugState.linvelX)}, ${fmt(debugState.linvelY)}, ${fmt(debugState.linvelZ)}`,
+      `angvel ${fmt(debugState.angvelX)}, ${fmt(debugState.angvelY)}, ${fmt(debugState.angvelZ)}`,
       `speed ${fmt(debugState.speed)} / ${fmt(debugState.maxSpeed)}`,
-      `tiltMag ${fmt(debugState.tiltMagnitude)}`,
-      `tiltBoost ${fmt(debugState.tiltBoost)}`,
-      `ball ${fmt(debugState.ballLocalX)}, ${fmt(debugState.ballLocalZ)}`,
-      `y ${fmt(BALL_CENTER_Y)}`,
+      `reset ${debugState.resetCount}`,
       `floor ${fmt(FLOOR_Y)}`,
-      `limit ${fmt(debugState.limitX)}, ${fmt(debugState.limitZ)}`,
-      `centerBias ${fmt(debugState.centerBias)}`,
-      "shadow radial-texture",
+      `radius ${fmt(BALL_RADIUS)}`,
+      "rapier dynamic ball",
+      "kinematic cube colliders 6",
     ].join("\n");
   });
 

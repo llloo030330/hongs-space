@@ -4,9 +4,7 @@ import { MeshTransmissionMaterial, RoundedBox } from "@react-three/drei";
 import { useMemo } from "react";
 import * as THREE from "three";
 import { CUBE_SIZE } from "./heroGeometry";
-import {
-  GLASS_EDGE_OPACITY,
-} from "./heroTuning";
+import { GLASS_EDGE_OPACITY } from "./heroTuning";
 
 function createLineGeometry(segments: number[][]) {
   const geometry = new THREE.BufferGeometry();
@@ -55,11 +53,11 @@ export default function GlassCube() {
           backside
           samples={10}
           thickness={0.68}
-          chromaticAberration={0.003}
+          chromaticAberration={0}
           anisotropy={0.08}
-          distortion={0.018}
-          distortionScale={0.05}
-          temporalDistortion={0.006}
+          distortion={0}
+          distortionScale={0}
+          temporalDistortion={0}
           transmission={0.92}
           roughness={0.22}
           ior={1.18}

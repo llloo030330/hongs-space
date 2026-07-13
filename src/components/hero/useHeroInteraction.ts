@@ -6,7 +6,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   type MutableRefObject,
 } from "react";
 import * as THREE from "three";
@@ -40,17 +39,8 @@ export type HeroInteractionState = {
 
 export type HeroInteractionRef = MutableRefObject<HeroInteractionState>;
 
-export type MotionControlStatus =
-  | "idle"
-  | "enabled"
-  | "denied"
-  | "unsupported";
-
 export type HeroInteractionControls = {
   interactionRef: HeroInteractionRef;
-  isMobileInput: boolean;
-  motionStatus: MotionControlStatus;
-  requestMotionPermission: () => Promise<void>;
 };
 
 type PointerState = {
@@ -71,11 +61,19 @@ type PointerState = {
 
 type GyroState = {
   isEnabled: boolean;
-  baselineBeta: number | null;
-  baselineGamma: number | null;
+  baselineX: number | null;
+  baselineZ: number | null;
+  calibrationCount: number;
+  calibrationSumX: number;
+  calibrationSumZ: number;
   targetTiltX: number;
   targetTiltZ: number;
 };
+
+type DeviceOrientationEventConstructorWithPermission =
+  typeof DeviceOrientationEvent & {
+    requestPermission?: () => Promise<PermissionState>;
+  };
 
 const initialInteractionState: HeroInteractionState = {
   currentOffsetX: 0,
@@ -93,6 +91,7 @@ const initialInteractionState: HeroInteractionState = {
 const maxOffsetX = 0.35;
 const maxOffsetY = 0.22;
 const dragSensitivity = 0.003;
+const gyroCalibrationSamples = 10;
 
 function normalizeGyroDelta(value: number) {
   const finiteValue = Number.isFinite(value) ? value : 0;
@@ -109,11 +108,53 @@ function normalizeGyroDelta(value: number) {
   return THREE.MathUtils.clamp(adjusted / range, -1, 1);
 }
 
+function getScreenOrientationAngle() {
+  if (typeof window === "undefined") {
+    return 0;
+  }
+
+  const screenAngle = window.screen?.orientation?.angle;
+  const legacyAngle = (window as unknown as { orientation?: number }).orientation;
+  const angle =
+    typeof screenAngle === "number"
+      ? screenAngle
+      : typeof legacyAngle === "number"
+        ? legacyAngle
+        : 0;
+
+  return ((angle % 360) + 360) % 360;
+}
+
+function normalizeDeviceOrientation(beta: number, gamma: number) {
+  const angle = getScreenOrientationAngle();
+
+  if (angle === 90) {
+    return { x: beta, z: -gamma };
+  }
+
+  if (angle === 270) {
+    return { x: -beta, z: gamma };
+  }
+
+  if (angle === 180) {
+    return { x: -gamma, z: -beta };
+  }
+
+  return { x: gamma, z: beta };
+}
+
+function resetGyroCalibration(gyro: GyroState) {
+  gyro.baselineX = null;
+  gyro.baselineZ = null;
+  gyro.calibrationCount = 0;
+  gyro.calibrationSumX = 0;
+  gyro.calibrationSumZ = 0;
+  gyro.targetTiltX = 0;
+  gyro.targetTiltZ = 0;
+}
+
 export function useHeroInteraction() {
   const { gl } = useThree();
-  const [isMobileInput, setIsMobileInput] = useState(false);
-  const [motionStatus, setMotionStatus] =
-    useState<MotionControlStatus>("idle");
   const liveStateRef = useRef<HeroInteractionState>(initialInteractionState);
   const pointerRef = useRef<PointerState>({
     isFinePointer: true,
@@ -132,15 +173,26 @@ export function useHeroInteraction() {
   });
   const gyroRef = useRef<GyroState>({
     isEnabled: false,
-    baselineBeta: null,
-    baselineGamma: null,
+    baselineX: null,
+    baselineZ: null,
+    calibrationCount: 0,
+    calibrationSumX: 0,
+    calibrationSumZ: 0,
     targetTiltX: 0,
     targetTiltZ: 0,
   });
   const isListeningForOrientationRef = useRef(false);
+  const permissionRequestStartedRef = useRef(false);
 
   const handleDeviceOrientation = useCallback(
     (event: DeviceOrientationEvent) => {
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState === "hidden"
+      ) {
+        return;
+      }
+
       const gyro = gyroRef.current;
       const beta = event.beta;
       const gamma = event.gamma;
@@ -149,15 +201,33 @@ export function useHeroInteraction() {
         return;
       }
 
-      if (gyro.baselineBeta === null || gyro.baselineGamma === null) {
-        gyro.baselineBeta = beta;
-        gyro.baselineGamma = gamma;
+      const normalizedOrientation = normalizeDeviceOrientation(beta, gamma);
+
+      if (gyro.calibrationCount < gyroCalibrationSamples) {
+        gyro.calibrationCount += 1;
+        gyro.calibrationSumX += normalizedOrientation.x;
+        gyro.calibrationSumZ += normalizedOrientation.z;
+
+        if (gyro.calibrationCount === gyroCalibrationSamples) {
+          gyro.baselineX = gyro.calibrationSumX / gyroCalibrationSamples;
+          gyro.baselineZ = gyro.calibrationSumZ / gyroCalibrationSamples;
+        }
+
+        gyro.targetTiltX = 0;
+        gyro.targetTiltZ = 0;
+        return;
       }
 
-      const betaDelta = beta - gyro.baselineBeta;
-      const gammaDelta = gamma - gyro.baselineGamma;
-      const normalizedX = normalizeGyroDelta(gammaDelta);
-      const normalizedZ = normalizeGyroDelta(betaDelta);
+      if (gyro.baselineX === null || gyro.baselineZ === null) {
+        return;
+      }
+
+      const normalizedX = normalizeGyroDelta(
+        normalizedOrientation.x - gyro.baselineX,
+      );
+      const normalizedZ = normalizeGyroDelta(
+        normalizedOrientation.z - gyro.baselineZ,
+      );
 
       gyro.targetTiltZ = THREE.MathUtils.clamp(
         normalizedX * GYRO_TILT_STRENGTH * GYRO_X_SIGN,
@@ -183,34 +253,34 @@ export function useHeroInteraction() {
     }
 
     if (!isListeningForOrientationRef.current) {
-      window.addEventListener("deviceorientation", handleDeviceOrientation, {
-        passive: true,
-      });
+      window.addEventListener("deviceorientation", handleDeviceOrientation, true);
       isListeningForOrientationRef.current = true;
     }
 
     gyroRef.current.isEnabled = true;
-    gyroRef.current.baselineBeta = null;
-    gyroRef.current.baselineGamma = null;
-    gyroRef.current.targetTiltX = 0;
-    gyroRef.current.targetTiltZ = 0;
+    resetGyroCalibration(gyroRef.current);
 
     return true;
   }, [handleDeviceOrientation]);
 
-  const requestMotionPermission = useCallback(async () => {
+  const requestDeviceOrientationOnce = useCallback(async () => {
     if (typeof window === "undefined") {
       return;
     }
 
-    if (!("DeviceOrientationEvent" in window)) {
-      setMotionStatus("unsupported");
+    if (permissionRequestStartedRef.current) {
       return;
     }
 
-    const OrientationEvent = window.DeviceOrientationEvent as unknown as {
-      requestPermission?: () => Promise<PermissionState>;
-    };
+    permissionRequestStartedRef.current = true;
+
+    if (!("DeviceOrientationEvent" in window)) {
+      gyroRef.current.isEnabled = false;
+      return;
+    }
+
+    const OrientationEvent =
+      window.DeviceOrientationEvent as DeviceOrientationEventConstructorWithPermission;
 
     try {
       if (typeof OrientationEvent.requestPermission === "function") {
@@ -218,16 +288,17 @@ export function useHeroInteraction() {
 
         if (permission !== "granted") {
           gyroRef.current.isEnabled = false;
-          setMotionStatus("denied");
           return;
         }
       }
 
-      const didStart = startDeviceOrientation();
-      setMotionStatus(didStart ? "enabled" : "unsupported");
-    } catch {
+      startDeviceOrientation();
+    } catch (error) {
       gyroRef.current.isEnabled = false;
-      setMotionStatus("denied");
+
+      if (process.env.NODE_ENV !== "production") {
+        console.info("Device orientation permission was not granted.", error);
+      }
     }
   }, [startDeviceOrientation]);
 
@@ -236,7 +307,6 @@ export function useHeroInteraction() {
     const pointer = pointerRef.current;
 
     pointer.isFinePointer = window.matchMedia("(pointer: fine)").matches;
-    setIsMobileInput(!pointer.isFinePointer);
 
     const handlePointerDown = (event: PointerEvent) => {
       if (!pointer.isFinePointer) {
@@ -335,6 +405,86 @@ export function useHeroInteraction() {
   }, [gl]);
 
   useEffect(() => {
+    if (typeof window === "undefined" || !("DeviceOrientationEvent" in window)) {
+      gyroRef.current.isEnabled = false;
+      return;
+    }
+
+    const OrientationEvent =
+      window.DeviceOrientationEvent as DeviceOrientationEventConstructorWithPermission;
+
+    if (typeof OrientationEvent.requestPermission !== "function") {
+      startDeviceOrientation();
+      return;
+    }
+
+    function removeFirstInteractionListeners() {
+      window.removeEventListener("pointerdown", requestOrientationOnce, true);
+      window.removeEventListener("touchend", requestOrientationOnce, true);
+      window.removeEventListener("click", requestOrientationOnce, true);
+    }
+
+    function requestOrientationOnce() {
+      removeFirstInteractionListeners();
+      void requestDeviceOrientationOnce();
+    }
+
+    const firstInteractionOptions: AddEventListenerOptions = {
+      capture: true,
+      passive: true,
+    };
+
+    window.addEventListener(
+      "pointerdown",
+      requestOrientationOnce,
+      firstInteractionOptions,
+    );
+    window.addEventListener(
+      "touchend",
+      requestOrientationOnce,
+      firstInteractionOptions,
+    );
+    window.addEventListener(
+      "click",
+      requestOrientationOnce,
+      firstInteractionOptions,
+    );
+
+    return removeFirstInteractionListeners;
+  }, [requestDeviceOrientationOnce, startDeviceOrientation]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return;
+    }
+
+    const resetActiveGyro = () => {
+      if (gyroRef.current.isEnabled) {
+        resetGyroCalibration(gyroRef.current);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        resetActiveGyro();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("orientationchange", resetActiveGyro);
+    window.screen?.orientation?.addEventListener?.("change", resetActiveGyro);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("orientationchange", resetActiveGyro);
+      window.screen?.orientation?.removeEventListener?.(
+        "change",
+        resetActiveGyro,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (
         typeof window !== "undefined" &&
@@ -343,6 +493,7 @@ export function useHeroInteraction() {
         window.removeEventListener(
           "deviceorientation",
           handleDeviceOrientation,
+          true,
         );
         isListeningForOrientationRef.current = false;
       }
@@ -509,10 +660,7 @@ export function useHeroInteraction() {
   return useMemo<HeroInteractionControls>(
     () => ({
       interactionRef: liveStateRef,
-      isMobileInput,
-      motionStatus,
-      requestMotionPermission,
     }),
-    [isMobileInput, motionStatus, requestMotionPermission],
+    [],
   );
 }

@@ -15,7 +15,7 @@ type HeroVisualProps = {
 
 export default function HeroVisual({
   mode = "default",
-  subtitle = "Robotics / Creation / Film / Life",
+  subtitle = "A quiet digital space for product experiments, photography, and small interactive ideas.",
   enterTargetId = "about",
 }: HeroVisualProps) {
   const handleEnter = () => {
@@ -31,9 +31,9 @@ export default function HeroVisual({
 
   return (
     <section
-      id="home"
+      id={mode === "preview" ? "hero-preview" : "hero"}
       data-mode={mode}
-      className="relative isolate min-h-[100dvh] overflow-hidden bg-[#f3f3ef] text-[#151515]"
+      className="relative isolate min-h-[100svh] overflow-hidden bg-[#f3f3ef] text-[#151515] supports-[height:100dvh]:min-h-[100dvh]"
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.99),rgba(248,248,244,0.93)_36%,rgba(226,226,219,0.7)_100%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_64%,transparent_0%,transparent_45%,rgba(88,88,80,0.065)_100%)]" />
@@ -44,24 +44,24 @@ export default function HeroVisual({
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.1, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-          className="select-none whitespace-nowrap text-balance text-[clamp(2.34rem,7.3vw,5.85rem)] font-medium leading-[1.02] tracking-[0.032em] text-black/[0.82] drop-shadow-[0_1px_18px_rgba(255,255,255,0.38)] sm:tracking-[0.052em]"
+          className="hero-title select-none whitespace-nowrap text-balance text-[clamp(2.08rem,10vw,3.15rem)] font-medium leading-[1.02] tracking-[0.02em] text-black/[0.82] drop-shadow-[0_1px_18px_rgba(255,255,255,0.38)] sm:text-[clamp(2.34rem,7.3vw,5.85rem)] sm:tracking-[0.052em]"
         >
           Hong&apos;s Space
         </motion.h1>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 top-[calc(50%+4.78rem)] z-10 flex justify-center px-6 text-center sm:top-[calc(50%+5.95rem)]">
+      <div className="hero-subtitle pointer-events-none absolute inset-x-0 top-[calc(50%+4.35rem)] z-10 flex justify-center px-5 text-center sm:top-[calc(50%+5.95rem)] sm:px-6">
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-[20rem] text-[9px] font-medium uppercase leading-[1.72] tracking-[0.2em] text-black/31 sm:max-w-none sm:text-[10.5px] sm:tracking-[0.3em]"
+          className="max-w-[19rem] text-[9.5px] font-medium leading-[1.65] tracking-[0.07em] text-black/35 sm:max-w-[43rem] sm:text-[11px] sm:tracking-[0.12em]"
         >
           {subtitle}
         </motion.p>
       </div>
 
-      <div className="absolute bottom-7 left-0 right-0 z-10 flex justify-center px-6 sm:bottom-10">
+      <div className="hero-enter absolute bottom-[calc(max(1.25rem,env(safe-area-inset-bottom))+0.25rem)] left-0 right-0 z-10 flex justify-center px-6 sm:bottom-10">
         <motion.button
           type="button"
           onClick={handleEnter}

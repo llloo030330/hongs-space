@@ -1,4 +1,4 @@
-import { PhysicsCubeScene } from "@/components/physics-cube/PhysicsCubeScene";
+import HeroCanvas from "@/components/hero/HeroCanvas";
 
 export default function CubePhysicsLabPage() {
   return (
@@ -13,8 +13,8 @@ export default function CubePhysicsLabPage() {
           </h1>
         </div>
 
-        <div className="min-h-[620px] flex-1 overflow-hidden rounded-[34px] border border-white/70 bg-white/38 shadow-[0_28px_100px_rgba(0,0,0,0.07)] backdrop-blur-xl">
-          <PhysicsCubeScene />
+        <div className="relative min-h-[620px] flex-1 overflow-hidden rounded-[34px] border border-white/70 bg-white/38 shadow-[0_28px_100px_rgba(0,0,0,0.07)] backdrop-blur-xl">
+          <HeroCanvas />
         </div>
       </section>
     </main>

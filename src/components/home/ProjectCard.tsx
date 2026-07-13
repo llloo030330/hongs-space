@@ -2,19 +2,41 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import type { Project } from "@/data/projects";
 
 type ProjectCardProps = {
   project: Project;
-  onOpen: (project: Project) => void;
 };
 
 function isExternalLink(href: string) {
   return href.startsWith("http://") || href.startsWith("https://");
 }
 
-export function ProjectCard({ project, onOpen }: ProjectCardProps) {
+function ProjectLinkButton({ href, label }: { href: string; label: string }) {
+  const className =
+    "inline-flex min-h-11 w-full items-center justify-center rounded-full border border-black/[0.075] px-4 text-center text-[10px] font-medium tracking-[0.13em] text-black/50 transition duration-300 hover:border-black/[0.14] hover:bg-white/32 hover:text-black/68 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 sm:w-fit sm:px-5 sm:text-[11px] sm:tracking-[0.16em]";
+
+  if (href.startsWith("/")) {
+    return (
+      <Link href={href} className={className}>
+        {label}
+      </Link>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      target={isExternalLink(href) ? "_blank" : undefined}
+      rel={isExternalLink(href) ? "noreferrer" : undefined}
+      className={className}
+    >
+      {label}
+    </a>
+  );
+}
+
+export function ProjectCard({ project }: ProjectCardProps) {
   if (project.variant === "experiment") {
     return <ExperimentProjectCard project={project} />;
   }
@@ -23,27 +45,27 @@ export function ProjectCard({ project, onOpen }: ProjectCardProps) {
     <motion.article
       whileHover={{ y: -2 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="group w-full rounded-[22px] border border-black/[0.07] bg-white/[0.18] p-6 text-left backdrop-blur-xl transition duration-500 hover:border-black/[0.13] hover:bg-white/[0.28] sm:p-9"
+      className="group w-full rounded-[20px] border border-black/[0.07] bg-white/[0.18] p-5 text-left backdrop-blur-xl transition duration-500 hover:border-black/[0.13] hover:bg-white/[0.28] sm:rounded-[22px] sm:p-9"
     >
-      <div className="grid gap-11 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
-        <div className="flex flex-col justify-between gap-10">
+      <div className="grid gap-7 lg:grid-cols-[0.92fr_1.08fr] lg:gap-12">
+        <div className="flex flex-col justify-between gap-7 sm:gap-9">
           <div>
             <p className="mb-5 text-[10px] font-medium uppercase tracking-[0.26em] text-black/34">
               {project.status}
             </p>
-            <h3 className="max-w-lg text-2xl font-medium tracking-[0.01em] text-black/78 sm:text-3xl">
+            <h3 className="max-w-lg text-[1.55rem] font-medium leading-tight tracking-[0.01em] text-black/78 sm:text-3xl">
               {project.title}
             </h3>
-            <p className="mt-6 max-w-xl text-sm leading-7 text-black/52 sm:text-base sm:leading-8">
-              {project.description}
+            <p className="mt-5 max-w-xl text-sm leading-7 text-black/52 sm:mt-6 sm:text-base sm:leading-8">
+              {project.shortDescription}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {project.tags.map((tag) => (
+            {project.homepageTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full border border-black/[0.065] bg-white/[0.16] px-3 py-1.5 text-[10px] font-medium tracking-[0.13em] text-black/43"
+                className="rounded-full border border-black/[0.065] bg-white/[0.16] px-3 py-1.5 text-[9.5px] font-medium tracking-[0.1em] text-black/43 sm:text-[10px] sm:tracking-[0.13em]"
               >
                 {tag}
               </span>
@@ -53,70 +75,19 @@ export function ProjectCard({ project, onOpen }: ProjectCardProps) {
 
         <div className="lg:pl-2">
           <div className="divide-y divide-black/[0.06] border-y border-black/[0.055]">
-            <CaseField label="Context">{project.context}</CaseField>
             <CaseField label="Role">{project.role}</CaseField>
-            <CaseField label="Problem">{project.problem}</CaseField>
-
-            <div className="py-5">
-              <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.22em] text-black/34">
-                System Flow
-              </p>
-              <ol className="flex flex-wrap items-center gap-x-2 gap-y-2">
-                {project.systemFlow.map((step, index) => (
-                  <li
-                    key={step}
-                    className="flex items-center gap-2 text-[12px] leading-6 text-black/52"
-                  >
-                    <span>{step}</span>
-                    {index < project.systemFlow.length - 1 ? (
-                      <span className="text-black/20" aria-hidden="true">
-                        {"->"}
-                      </span>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            <div className="py-5">
-              <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.22em] text-black/34">
-                Key Systems
-              </p>
-              <ul className="flex flex-wrap gap-2">
-                {project.keySystems.map((system) => (
-                  <li
-                    key={system}
-                    className="rounded-full border border-black/[0.06] bg-white/[0.14] px-3 py-1.5 text-[10px] font-medium tracking-[0.13em] text-black/45"
-                  >
-                    {system}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <CaseField label="Solution">{project.solution}</CaseField>
-            <CaseField label="Tech">{project.techStack.join(", ")}</CaseField>
-
+            <CaseField label="System Summary">
+              {project.systemSummary}
+            </CaseField>
             <div className="py-5">
               <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  aria-label={`Open ${project.title} case note`}
-                  onClick={() => onOpen(project)}
-                  className="min-h-11 rounded-full border border-black/[0.085] px-5 text-[11px] font-medium tracking-[0.16em] text-black/54 transition duration-300 hover:border-black/[0.15] hover:bg-white/38 hover:text-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
-                >
-                  Open Case Note
-                </button>
+                <ProjectLinkButton href={project.href} label="Open Case Study" />
                 {project.links.map((link) => (
-                  <a
+                  <ProjectLinkButton
                     key={link.href}
                     href={link.href}
-                    target={isExternalLink(link.href) ? "_blank" : undefined}
-                    rel={isExternalLink(link.href) ? "noreferrer" : undefined}
-                    className="inline-flex min-h-11 items-center rounded-full border border-black/[0.065] px-5 text-[11px] font-medium tracking-[0.16em] text-black/46 transition duration-300 hover:border-black/[0.13] hover:bg-white/30 hover:text-black/64 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
-                  >
-                    {link.label}
-                  </a>
+                    label={link.label}
+                  />
                 ))}
               </div>
             </div>
@@ -141,7 +112,7 @@ function ExperimentProjectCard({ project }: { project: Project }) {
           <p className="mb-4 text-[10px] font-medium uppercase tracking-[0.24em] text-black/32">
             Secondary experiment
           </p>
-          <h3 className="text-2xl font-medium tracking-[0.01em] text-black/74">
+          <h3 className="text-[1.45rem] font-medium leading-tight tracking-[0.01em] text-black/74 sm:text-2xl">
             {project.title}
           </h3>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-black/50">
@@ -149,10 +120,10 @@ function ExperimentProjectCard({ project }: { project: Project }) {
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2">
-            {project.tags.map((tag) => (
+            {project.homepageTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full border border-black/[0.055] bg-white/[0.12] px-3 py-1.5 text-[10px] font-medium tracking-[0.13em] text-black/38"
+                className="rounded-full border border-black/[0.055] bg-white/[0.12] px-3 py-1.5 text-[9.5px] font-medium tracking-[0.1em] text-black/38 sm:text-[10px] sm:tracking-[0.13em]"
               >
                 {tag}
               </span>
@@ -165,23 +136,7 @@ function ExperimentProjectCard({ project }: { project: Project }) {
             {project.status}
           </p>
           {primaryLink ? (
-            primaryLink.href.startsWith("/") ? (
-              <Link
-                href={primaryLink.href}
-                className="inline-flex min-h-11 w-fit items-center rounded-full border border-black/[0.075] px-5 text-[11px] font-medium tracking-[0.16em] text-black/50 transition duration-300 hover:border-black/[0.14] hover:bg-white/32 hover:text-black/68 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
-              >
-                {primaryLink.label}
-              </Link>
-            ) : (
-              <a
-                href={primaryLink.href}
-                target={isExternalLink(primaryLink.href) ? "_blank" : undefined}
-                rel={isExternalLink(primaryLink.href) ? "noreferrer" : undefined}
-                className="inline-flex min-h-11 w-fit items-center rounded-full border border-black/[0.075] px-5 text-[11px] font-medium tracking-[0.16em] text-black/50 transition duration-300 hover:border-black/[0.14] hover:bg-white/32 hover:text-black/68 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
-              >
-                {primaryLink.label}
-              </a>
-            )
+            <ProjectLinkButton href={primaryLink.href} label={primaryLink.label} />
           ) : null}
         </div>
       </div>
@@ -194,14 +149,14 @@ function CaseField({
   children,
 }: {
   label: string;
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <div className="py-5">
       <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.22em] text-black/34">
         {label}
       </p>
-      <p className="max-w-2xl text-sm leading-7 text-black/58">{children}</p>
+      <p className="max-w-2xl text-sm leading-7 text-black/58 [overflow-wrap:anywhere]">{children}</p>
     </div>
   );
 }
