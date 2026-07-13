@@ -1,0 +1,7 @@
+applications/
+archived-photos/
+hero-visual-backups/
+src/app/vocabulary-test/
+
+.next-dev*
+*.log
