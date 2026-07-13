@@ -1,11 +1,15 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   formatPhotoMeta,
   type GalleryPhoto,
 } from "@/components/sections/photoData";
+
+const swipeDistanceThreshold = 56;
+const swipeDirectionRatio = 1.2;
+const swipeDurationLimit = 650;
 
 type PhotoLightboxProps = {
   photos: GalleryPhoto[];
@@ -25,6 +29,13 @@ export function PhotoLightbox({
   const isOpen = activeIndex !== null && photos.length > 0;
   const activePhoto = isOpen ? photos[activeIndex] : null;
   const activeMeta = activePhoto ? formatPhotoMeta(activePhoto) : "";
+  const swipeStartRef = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+    time: number;
+  } | null>(null);
+  const hasHandledSwipeRef = useRef(false);
   const [imageStatus, setImageStatus] = useState<
     "loading" | "loaded" | "error"
   >("loading");
@@ -69,6 +80,58 @@ export function PhotoLightbox({
     };
   }, [isOpen]);
 
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "touch") return;
+
+    if ((event.target as HTMLElement).closest("button, a")) return;
+
+    swipeStartRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      time: window.performance.now(),
+    };
+    hasHandledSwipeRef.current = false;
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const start = swipeStartRef.current;
+
+    swipeStartRef.current = null;
+
+    if (!start || hasHandledSwipeRef.current || start.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if ((event.target as HTMLElement).closest("button, a")) return;
+
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    const duration = window.performance.now() - start.time;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    const isHorizontalSwipe =
+      absX >= swipeDistanceThreshold &&
+      absX > absY * swipeDirectionRatio &&
+      duration <= swipeDurationLimit;
+
+    if (!isHorizontalSwipe) return;
+
+    hasHandledSwipeRef.current = true;
+
+    if (deltaX > 0) {
+      onPrevious();
+      return;
+    }
+
+    onNext();
+  };
+
+  const handlePointerCancel = () => {
+    swipeStartRef.current = null;
+    hasHandledSwipeRef.current = false;
+  };
+
   return (
     <AnimatePresence>
       {activePhoto ? (
@@ -93,12 +156,15 @@ export function PhotoLightbox({
           </button>
 
           <motion.div
-            className="flex w-full flex-col items-center pt-10 sm:pt-0"
+            className="flex w-full touch-pan-y flex-col items-center pt-10 sm:pt-0"
             initial={{ opacity: 0, scale: 0.985 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.985 }}
             transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
             onClick={(event) => event.stopPropagation()}
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
           >
             <div className="mx-auto flex w-full items-center justify-center">
               <div className="relative flex min-h-48 min-w-48 items-center justify-center">

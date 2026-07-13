@@ -50,7 +50,6 @@ export default function GlassCube() {
         renderOrder={0}
       >
         <MeshTransmissionMaterial
-          backside
           samples={10}
           thickness={0.68}
           chromaticAberration={0}
@@ -76,7 +75,7 @@ export default function GlassCube() {
         <meshBasicMaterial
           color="#ffffff"
           transparent
-          opacity={0.032}
+          opacity={0.014}
           depthWrite={false}
           depthTest
           side={THREE.DoubleSide}
