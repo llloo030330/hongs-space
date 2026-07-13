@@ -11,3 +11,5 @@ yarn-error.log*
 pnpm-debug.log*
 .next-dev*
 .DS_Store
+
+.vercel
