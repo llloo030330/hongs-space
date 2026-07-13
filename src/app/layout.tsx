@@ -8,23 +8,27 @@ const geistSans = Geist({
   display: "swap",
 });
 
-const siteDescription = "在阅读环境中重复记忆英语单词。";
+const siteDescription =
+  "A quiet digital space for product experiments, photography, and independent projects by Hong.";
 
 export const metadata: Metadata = {
-  title: "阅读环境中重复记忆",
+  metadataBase: new URL("https://hongs-space.vercel.app"),
+  title: "Hong's Space",
   description: siteDescription,
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "阅读环境中重复记忆",
-    description: siteDescription,
+    title: "Hong's Space",
+    description:
+      "Product experiments, photography, and independent projects by Hong.",
     type: "website",
-    siteName: "阅读环境中重复记忆",
+    siteName: "Hong's Space",
+    url: "/",
   },
   twitter: {
     card: "summary",
-    title: "阅读环境中重复记忆",
+    title: "Hong's Space",
     description: siteDescription,
   },
   icons: {
@@ -43,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="en">
       <body className={geistSans.variable}>{children}</body>
     </html>
   );
