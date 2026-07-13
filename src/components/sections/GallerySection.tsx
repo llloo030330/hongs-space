@@ -412,7 +412,7 @@ function SeriesCover({ series }: { series: PhotoSeries }) {
 
   return (
     <span
-      className={`relative block aspect-[4/3] overflow-hidden ${series.presentation.imageRadiusClass} border ${series.presentation.borderClass} ${series.presentation.backgroundClass} transition duration-500 group-hover:scale-[1.015]`}
+      className={`relative block aspect-[4/3] overflow-hidden ${series.presentation.imageRadiusClass} border ${series.presentation.borderClass} bg-[#ecece7] ${series.presentation.backgroundClass} transition duration-500 group-hover:scale-[1.015]`}
     >
       {series.cover ? (
         <img
@@ -427,10 +427,10 @@ function SeriesCover({ series }: { series: PhotoSeries }) {
           }`}
         />
       ) : null}
-      <span className="absolute inset-0 bg-white/[0.08]" />
+      <span className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.34),rgba(210,210,200,0.16))]" />
       {!hasCover ? (
         <span
-          className={`absolute inset-0 grid place-items-center px-6 text-center text-2xl font-medium tracking-[0.02em] sm:text-3xl ${series.presentation.mutedTextClass}`}
+          className={`absolute inset-0 grid place-items-center px-6 text-center text-2xl font-medium tracking-[0.02em] text-black/58 sm:text-3xl ${series.presentation.textClass}`}
         >
           {series.title}
         </span>
@@ -559,16 +559,13 @@ export function GallerySection({
 }: {
   photoSeries: PhotoSeries[];
 }) {
-  const shouldReduceMotion = useReducedMotion();
-
   return (
     <motion.section
       id="gallery"
-      initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.25 }}
+      initial={false}
+      animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: shouldReduceMotion ? 0.01 : 0.66,
+        duration: 0.42,
         ease: [0.22, 1, 0.36, 1],
       }}
       className="scroll-mt-28 bg-[#f6f6f3] px-5 py-20 pt-16 sm:px-10 sm:py-32 lg:px-16"

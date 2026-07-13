@@ -58,7 +58,7 @@ export default function HeroCanvas() {
     <div className="absolute inset-0 h-full w-full">
       <Canvas
         className="h-full w-full"
-        style={{ height: "100%", width: "100%" }}
+        style={{ height: "100%", width: "100%", touchAction: "none" }}
         camera={{ position: [0, 0.15, 6.2], fov: 38 }}
         dpr={[1, 2]}
         gl={{
@@ -177,6 +177,7 @@ function KinematicCubeBody({
   interactionRef: HeroInteractionRef;
   children: ReactNode;
 }) {
+  const { size } = useThree();
   const cubeBodyRef = useRef<RapierRigidBody>(null);
   const quaternionRef = useRef(new THREE.Quaternion());
   const eulerRef = useRef(new THREE.Euler(0, 0, 0, "XYZ"));
@@ -192,8 +193,10 @@ function KinematicCubeBody({
     }
 
     const interaction = interactionRef.current;
+    const isMobile = finite(size.width, 1024) < 768;
     const maxTiltX = THREE.MathUtils.degToRad(8);
     const maxTiltZ = THREE.MathUtils.degToRad(5);
+    const baseRotationY = isMobile ? THREE.MathUtils.degToRad(-7) : 0;
     const tiltX = THREE.MathUtils.clamp(
       finite(interaction.currentTiltX),
       -maxTiltX,
@@ -206,7 +209,7 @@ function KinematicCubeBody({
     );
     const translation = body.translation();
 
-    eulerRef.current.set(tiltX, 0, tiltZ);
+    eulerRef.current.set(tiltX, baseRotationY, tiltZ);
     quaternionRef.current.setFromEuler(eulerRef.current);
     quaternionRef.current.normalize();
 

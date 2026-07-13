@@ -280,18 +280,36 @@ export function HomeHero({
               </a>
             </div>
 
-            <div className="grid gap-2 py-5 sm:grid-cols-[0.32fr_1fr] sm:items-center">
+            <div className="grid gap-2 border-b border-black/[0.055] py-5 sm:grid-cols-[0.32fr_1fr] sm:items-center">
               <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-black/34">
-                GitHub
+                WhatsApp
               </p>
               <a
-                href="https://github.com/llloo030330"
+                href="https://wa.me/8615812160330"
                 target="_blank"
                 rel="noreferrer"
                 className="pointer-events-auto text-sm tracking-[0.02em] text-black/50 underline decoration-black/12 underline-offset-4 transition duration-300 [overflow-wrap:anywhere] hover:text-black/68 hover:decoration-black/26 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
               >
-                github.com/llloo030330
+                +86 15812160330
               </a>
+            </div>
+
+            <div className="grid gap-2 border-b border-black/[0.055] py-5 sm:grid-cols-[0.32fr_1fr] sm:items-center">
+              <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-black/34">
+                WeChat
+              </p>
+              <p className="text-sm tracking-[0.02em] text-black/54 [overflow-wrap:anywhere]">
+                zgly811
+              </p>
+            </div>
+
+            <div className="grid gap-2 py-5 sm:grid-cols-[0.32fr_1fr] sm:items-center">
+              <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-black/34">
+                Phone
+              </p>
+              <p className="text-sm tracking-[0.02em] text-black/54 [overflow-wrap:anywhere]">
+                +86 15812160330
+              </p>
             </div>
           </div>
 

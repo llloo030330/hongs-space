@@ -91,6 +91,7 @@ const initialInteractionState: HeroInteractionState = {
 const maxOffsetX = 0.35;
 const maxOffsetY = 0.22;
 const dragSensitivity = 0.003;
+const coarseDragSensitivity = 0.0022;
 const gyroCalibrationSamples = 10;
 
 function normalizeGyroDelta(value: number) {
@@ -309,11 +310,10 @@ export function useHeroInteraction() {
     pointer.isFinePointer = window.matchMedia("(pointer: fine)").matches;
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (!pointer.isFinePointer) {
-        return;
+      if (pointer.isFinePointer) {
+        event.preventDefault();
       }
 
-      event.preventDefault();
       pointer.isDragging = true;
       pointer.startX = event.clientX;
       pointer.startY = event.clientY;
@@ -324,10 +324,6 @@ export function useHeroInteraction() {
     };
 
     const handlePointerMove = (event: PointerEvent) => {
-      if (!pointer.isFinePointer) {
-        return;
-      }
-
       const deltaX = event.clientX - pointer.lastX;
       const deltaY = event.clientY - pointer.lastY;
       const rect = element.getBoundingClientRect();
@@ -343,28 +339,34 @@ export function useHeroInteraction() {
       if (pointer.isDragging) {
         const dragX = event.clientX - pointer.startX;
         const dragY = event.clientY - pointer.startY;
+        const sensitivity = pointer.isFinePointer
+          ? dragSensitivity
+          : coarseDragSensitivity;
+        const tiltStrength = pointer.isFinePointer
+          ? DRAG_TILT_STRENGTH
+          : DRAG_TILT_STRENGTH * 0.62;
 
         pointer.targetOffsetX = THREE.MathUtils.clamp(
-          dragX * dragSensitivity,
+          dragX * sensitivity,
           -maxOffsetX,
           maxOffsetX,
         );
         pointer.targetOffsetY = THREE.MathUtils.clamp(
-          -dragY * dragSensitivity,
+          -dragY * sensitivity,
           -maxOffsetY,
           maxOffsetY,
         );
         pointer.targetTiltX = THREE.MathUtils.clamp(
-          pointer.targetOffsetY * DRAG_TILT_STRENGTH,
+          pointer.targetOffsetY * tiltStrength,
           -MAX_DRAG_TILT,
           MAX_DRAG_TILT,
         );
         pointer.targetTiltZ = THREE.MathUtils.clamp(
-          -pointer.targetOffsetX * DRAG_TILT_STRENGTH,
+          -pointer.targetOffsetX * tiltStrength,
           -MAX_DRAG_TILT,
           MAX_DRAG_TILT,
         );
-      } else {
+      } else if (pointer.isFinePointer) {
         pointer.targetOffsetX = normalizedX * maxOffsetX * 0.32;
         pointer.targetOffsetY = normalizedY * maxOffsetY * 0.28;
         pointer.targetTiltX = THREE.MathUtils.clamp(
