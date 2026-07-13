@@ -58,7 +58,7 @@ export default function HeroCanvas() {
     <div className="absolute inset-0 h-full w-full">
       <Canvas
         className="h-full w-full"
-        style={{ height: "100%", width: "100%", touchAction: "none" }}
+        style={{ height: "100%", width: "100%", touchAction: "pan-y" }}
         camera={{ position: [0, 0.15, 6.2], fov: 38 }}
         dpr={[1, 2]}
         gl={{
@@ -177,7 +177,6 @@ function KinematicCubeBody({
   interactionRef: HeroInteractionRef;
   children: ReactNode;
 }) {
-  const { size } = useThree();
   const cubeBodyRef = useRef<RapierRigidBody>(null);
   const quaternionRef = useRef(new THREE.Quaternion());
   const eulerRef = useRef(new THREE.Euler(0, 0, 0, "XYZ"));
@@ -193,10 +192,8 @@ function KinematicCubeBody({
     }
 
     const interaction = interactionRef.current;
-    const isMobile = finite(size.width, 1024) < 768;
     const maxTiltX = THREE.MathUtils.degToRad(8);
     const maxTiltZ = THREE.MathUtils.degToRad(5);
-    const baseRotationY = isMobile ? THREE.MathUtils.degToRad(-7) : 0;
     const tiltX = THREE.MathUtils.clamp(
       finite(interaction.currentTiltX),
       -maxTiltX,
@@ -209,7 +206,7 @@ function KinematicCubeBody({
     );
     const translation = body.translation();
 
-    eulerRef.current.set(tiltX, baseRotationY, tiltZ);
+    eulerRef.current.set(tiltX, 0, tiltZ);
     quaternionRef.current.setFromEuler(eulerRef.current);
     quaternionRef.current.normalize();
 
@@ -304,11 +301,22 @@ function ResponsiveCameraFraming() {
     const viewportWidth = finite(size.width, 1024);
     const isMobile = viewportWidth < 768;
     const isShortLandscape = isMobile && viewportWidth > finite(size.height, 800);
-    const targetZ = isMobile ? (isShortLandscape ? 11.2 : 11) : 6.2;
-    const targetFov = isMobile ? 38 : 38;
+    const targetX = isMobile ? (isShortLandscape ? 0.7 : 1.05) : 0;
+    const targetY = isMobile ? (isShortLandscape ? 0.3 : 0.42) : 0.15;
+    const targetZ = isMobile ? (isShortLandscape ? 8.6 : 10.2) : 6.2;
+    const targetFov = isMobile ? 37 : 38;
 
+    camera.position.x = THREE.MathUtils.damp(camera.position.x, targetX, 5.5, frameDelta);
+    camera.position.y = THREE.MathUtils.damp(camera.position.y, targetY, 5.5, frameDelta);
     camera.position.z = THREE.MathUtils.damp(camera.position.z, targetZ, 5.5, frameDelta);
     camera.fov = THREE.MathUtils.damp(camera.fov, targetFov, 5.5, frameDelta);
+
+    if (isMobile) {
+      camera.lookAt(0, 0, 0);
+    } else {
+      camera.rotation.set(0, 0, 0);
+    }
+
     camera.updateProjectionMatrix();
   });
 

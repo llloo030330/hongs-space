@@ -509,7 +509,18 @@ export function useHeroInteraction() {
     const frameDelta = Math.min(delta, 1 / 30);
 
     if (!pointer.isFinePointer) {
-      if (gyro.isEnabled) {
+      if (pointer.isDragging) {
+        pointer.targetOffsetX = THREE.MathUtils.clamp(
+          pointer.targetOffsetX,
+          -maxOffsetX,
+          maxOffsetX,
+        );
+        pointer.targetOffsetY = THREE.MathUtils.clamp(
+          pointer.targetOffsetY,
+          -maxOffsetY,
+          maxOffsetY,
+        );
+      } else if (gyro.isEnabled) {
         const normalizedTiltX =
           MAX_GYRO_TILT > 0 ? gyro.targetTiltX / MAX_GYRO_TILT : 0;
         const normalizedTiltZ =
